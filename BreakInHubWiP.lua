@@ -1,3 +1,8 @@
+-- Speedrun any% getting achivement lol
+
+
+
+
 --Hub BreakIn Script (dead/depricated)
 game:GetService("ReplicatedStorage").RemoteEvents.OutsideRole:FireServer(table.unpack({
     [1] = "LinkedSword",
