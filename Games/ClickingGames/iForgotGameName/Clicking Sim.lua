@@ -1,6 +1,8 @@
 --[[
     references for VSC to not be mad at me, remove
---]] local loadstring = nil
+--]] 
+--[[
+local loadstring = nil
 local Color3 = nil
 local game = nil
 local C = nil
@@ -9,6 +11,7 @@ local shared = nil
 local wait = nil
 local getgenv = nil
 local spawn = nil
+]]
 local AutoClick = getgenv().AutoClick
 getgenv().AutoClick = true
 local library = loadstring(game:HttpGet(
