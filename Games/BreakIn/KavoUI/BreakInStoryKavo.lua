@@ -144,26 +144,44 @@ game:GetService("ReplicatedStorage").RemoteEvents.BuyItem:FireServer("BloxyCola"
 end
 function collectAllMoney()
 for i, v in pairs(game:GetService("Workspace"):GetDescendants()) do
-		if v.Name == "Money" or v.name == "Money" or v.Name == "Money2" or v.name == "Money2" or v.Name == "Money2" or v.name == "Money2" or v.Name == "Money3" or v.name == "Money3" or v.Name == "Money4" or v.name == "Money4" or v.Name == "Money5" or v.name == "Money5" or v.Name == "Money6" or v.name == "Money6" then
+		if v.Name == "Money"  or v.Name == "Money2" or v.Name == "Money2" or v.Name == "Money3" or v.Name == "Money4"or v.Name == "Money5" or v.Name == "Money6" and v.Parent then
+			fireclickdetector(v.ClickDetector)
 			game:GetService("ReplicatedStorage").RemoteEvents.FoundMoney:FireServer(v)
 			game.StarterGui:SetCore("SendNotification", {
                 Title = "Money thingy",
                 Duration = 1,
-                Text = v.Name, "Was found"
+                Text = "Found "..v.Name..""
             })
 		end
 	end
 end
 function doAutoWin()
 	local LarryzHouse = workspace.LarrysHouse
+	if not LarryzHouse then
+		print("No")
+		return
+	end
 end if LarryzHouse then
 for i, v in pairs(workspace.LarrysHouse.Destructable:GetDescendants()) do
 	local vName = v.Name
 	game:GetService("ReplicatedStorage").RemoteEvents.MansionHit:FireServer(game:GetService("Workspace").LarrysHouse.Destructable.v.Name)
 	break
 end
-else
-	print("LARRY's HOUSE DOESN'T EXIST")
+end
+function openSafe()
+	for i, v in pairs(game:GetService("Workspace"):GetDescendants()) do
+		if v.Name == "CodeNote" then
+			
+			--v.SurfaceGui.TextLabel.Text
+game.StarterGui:SetCore("SendNotification", {
+                Title = "Code Finder",
+                Duration = 5,
+                Text = "Code is: "..v.SurfaceGui.TextLabel.Text..", Sending Remote Event With parameter with the code.."
+				})
+	game:GetService("ReplicatedStorage").RemoteEvents.Safe:FireServer(v.SurfaceGui.TextLabel.Text)
+			
+		end
+end
 end
 function findSafeCode()
 	for i, v in pairs(game:GetService("Workspace"):GetDescendants()) do
@@ -172,9 +190,10 @@ function findSafeCode()
 			--v.SurfaceGui.TextLabel.Text
 game.StarterGui:SetCore("SendNotification", {
                 Title = "Code Finder",
-                Duration = 1,
+                Duration = 5,
                 Text = "Code is: "..v.SurfaceGui.TextLabel.Text..""
             })
+			
 		end
 end
 end
@@ -253,6 +272,15 @@ end)
 PSec:NewSlider("Jump Height", "Makes you be able to jump Higher", 89, 16, function(jHeight)
     game.Players.LocalPlayer.Character.Humanoid.CharacterJumpDistance = jHeight
 end)
+PSec:NewSlider("Hip Height", "Makes you walk higher", 89, 2.2, function(hHeight)
+if hHeight == 2 then
+	p=game:GetService("Players").LocalPlayer.Character
+	p:FindFirstChild("Humanoid").HipHeight = 2.2
+	
+end
+	p=game:GetService("Players").LocalPlayer.Character
+	p:FindFirstChild("Humanoid").HipHeight = hHeight
+end)
 --entity.character.HumanoidRootPart.CFrame = entity.character.HumanoidRootPart.CFrame + flypos
 local ITab = Window:NewTab("Items")
 local ISec = ITab:NewSection("Main")
@@ -315,10 +343,16 @@ GSec5:NewButton(
     doPurchaseItem(selectedShopItem)
 end)
 GSec4:NewButton(
-    "Anti Drown", "Removes the Drown remote Event so It calls nil instead of the function",
+    "Anti Drown", "Removes the Drown remote Event and ToxicObby Script so It calls nil instead of the function",
     function()
+	for i, v in pairs(game:GetService("Players").LocalPlayer.Scripts:GetDescendants()) do
+		if v.Name == "ToxicObby" then
+		v:Destroy()
+		print("Destroyed Script", v.Name)
+		end
+	end
 	for i, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-		if v.name == "ToxicDrown" or v.Name == "ToxicDrown" or v.name == "CatDrown" or v.Name == "CatDrown" then
+		if v.Name == "ToxicDrown" or v.Name == "CatDrown" and v.Parent then
 			v:Destroy()
 			print("No More Drowning")
 		end
@@ -328,7 +362,7 @@ GSec4:NewButton(
     "Anti Can'tGetUp", "Removes the Drown remote Event so It calls nil instead of the function",
     function()
 	for i, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-		if v.name == "CantGetUp" or v.Name == "CantGetUp" or v.name == "CantGetUp" or v.Name == "CantGetUp" then
+		if v.Name == "CantGetUp" then
 			v:Destroy()
 			print("No More Not being able to get up")
 		end
@@ -401,18 +435,9 @@ GSec2:NewDropdown("Teleports", "Select A Teleport From the Dropdown", {"Hiding_S
 	selectedTP = sTP
 end)
 GSec3:NewButton(
-    "Force Find Safe", "Force Finds the Safe by clicking on it",
+    "Find & Open Safe", "Finds the code, the safe, and opens the safe",
     function()
-    game:GetService("ReplicatedStorage").RemoteEvents.PaintingClicked:FireServer("http://www.roblox.com/asset/?id=363240671")
-   game:GetService("ReplicatedStorage").RemoteEvents.PaintingClicked:FireServer("rbxassetid://3195645922")
-  game:GetService("ReplicatedStorage").RemoteEvents.PaintingClicked:FireServer("http://www.roblox.com/asset/?id=178210631")
- game:GetService("ReplicatedStorage").RemoteEvents.PaintingClicked:FireServer("http://www.roblox.com/asset/?id=3246691515")
-game:GetService("ReplicatedStorage").RemoteEvents.PaintingClicked:FireServer("rbxassetid://3195645674")
-end)
-GSec3:NewButton(
-    "Get Safe Code", "Finds the code",
-    function()
-	findSafeCode()
+	openSafe()
 end)
 GSec2:NewButton(
     "Teleport to Selected", "TPs you to the selected Location",
@@ -474,6 +499,7 @@ GSec:NewButton(
 		function()
 			game:GetService("ReplicatedStorage").RemoteEvents.BasementMission:FireServer()
 			game:GetService("ReplicatedStorage").RemoteEvents.GiveTool:FireServer("Key")
+			fireclickdetector(game:GetService("Workspace").Doors.Basement.Closed)
 		end)
 --[[
 
