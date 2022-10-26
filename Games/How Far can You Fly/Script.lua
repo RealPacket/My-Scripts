@@ -193,39 +193,26 @@ GTab:AddToggle({
 	end
 })
 GExploit:AddButton({
-	Name = "Disable AC (PATCHED)",
+	Name = "Disable AC (UNPATCHED AS OF 10/26/2022)",
 	Callback = function()
 		OrionLib:MakeNotification({
-	Name = "RIP AC Disabler",
-	Content = "it got patched :(",
+	Name = "AC Disabler is back!",
+	Content = "it got patched, but I made a comeback :)",
 	Image = "rbxassetid://4483345998",
 	Time = 6
 	})
-for i, v in pairs(game:GetService("Workspace").VIP:GetDescendants()) do
-	if v.name == "VipDoor" or v.Name == "CheckPart" then
+	for i, v in pairs(game:GetService("Workspace").VIP:GetDescendants()) do
+	if v.Name == "Part" or v.Name == "D" and v.Parent then
 		v:Destroy()
-		if v.name then
-		print("[AntiExploitChecks]", "Destroyed", v.name)
-		wasAntiExploitCheckPartDestroyed = true
+		print("[AntiAC] Destroying", v.Name)
 	OrionLib:MakeNotification({
-	Name = "New Feature Unlocked!",
-	Content = "You Unlocked the VIP Coin Farm Toggle!",
-	Image = "rbxassetid://4483345998",
-	Time = 6
-})
-		elseif v.Name then
-			print("[AntiExploitChecks]", "Destroyed", v.Name)
-			wait()
-			wasAntiExploitCheckPartDestroyed = true
-			OrionLib:MakeNotification({
-	Name = "New Feature Unlocked!",
-	Content = "You Unlocked the VIP Coin Farm Toggle!",
-	Image = "rbxassetid://4483345998",
-	Time = 6
-})
-		end
-		end
+		Name = "AC Disabler",
+		Content = "Destroyed "..v.Name.."",
+		Image = "rbxassetid://4483345998",
+		Time = 6
+	})
 	end
+end
 end
 })
 ATab:AddToggle({
