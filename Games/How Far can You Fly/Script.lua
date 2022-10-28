@@ -216,7 +216,7 @@ end
 end
 })
 ATab:AddToggle({
-	Name = "AutoFarm",
+	Name = "AutoFarm (Doesn't Work lol)",
 	Default = false,
 	Callback = function(val)
 	getgenv().boolean = val
