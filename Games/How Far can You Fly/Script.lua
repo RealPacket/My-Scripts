@@ -193,7 +193,7 @@ GTab:AddToggle({
 	end
 })
 GExploit:AddButton({
-	Name = "Disable AC (UNPATCHED AS OF 10/26/2022)",
+	Name = "Disable AC (UNPATCHED AS OF 10/26/2022 & 10/27/2022)",
 	Callback = function()
 		OrionLib:MakeNotification({
 	Name = "AC Disabler is back!",
