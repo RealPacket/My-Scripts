@@ -1,7 +1,7 @@
 local URLs = {
 	-- Notifications
 	"https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Games/BreakIn/DiscordUI/BreakInWiP.lua",
-	-- NO Notifications (Use EVON instead of Krnl cause I fucked up something lol)
+	-- NO Notification
 	"https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Games/BreakIn/DiscordUI/BreakInWiP2.lua",
 	-- KAVO UI
 	"https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Games/BreakIn/KavoUI/BreakInStoryKavo.lua"
