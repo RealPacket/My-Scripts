@@ -1,3 +1,4 @@
+-- Skidded from https://github.com/RegularVynixu/Vynixius/blob/main/Loader.lua lmao
 local games = {
     [{8884433153}] = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Games/Collect%20All%20Pets/Script.lua",
     [{7560156054}] = "https://raw.githubusercontent.com/https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Games/ClickingGames/Clicker%20Simulator/Clicker%20Simulator.lua/My-Scripts/main/Clicker%20Simulator.lua",
