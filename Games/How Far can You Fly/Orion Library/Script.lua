@@ -281,25 +281,6 @@ ATab:AddSlider({
 	end    
 })
 MTab:AddButton({
-	Name = "Destroy Script",
-	Callback = function()
-	OrionLib:MakeNotification({
-	Name = "Uninject Script Button",
-	Content = "Uninjected!",
-	Image = "rbxassetid://4483345998",
-	Time = 1 
-})
-    print("Starting to Destroy Script... (0/4)")
-	Uninjecting = true
-	print("Uninjecting State Set to true! (1/4)")
-	print("Destroying GUI Library And setting Player Speed to default... (2/4)")
-	wait(1)
-	OrionLib:Destroy()
-	LPlayer.Character.Humanoid.WalkSpeed = 18
-	print("Destroy Script done! (3/4)")
-  	end    
-})
-MTab:AddButton({
 	Name = "Anti Bad Tiles",
 	Callback = function()
 	for i, v in pairs(game:GetService("Workspace").Tiles:GetDescendants()) do
