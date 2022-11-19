@@ -34,6 +34,25 @@
 
 
 
+function inGameOrLoadLoader()
+if game.PlaceId == 3851622790 then
+	return true
+	elseif game.PlaceId ~= 3851622790 and game.PlaceId ~= 4620170611 then
+		warn("This script shouldn't be used in this game... Loading loader so hopefully you can get the Correct script")
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Loader.lua", true))()
+		return
+end
+end
+if inGameOrLoadLoader() then
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Games/BreakIn/BreakInHubLoader.lua", true))()
+	print("Lobby Detected")
+	return
+end
+
+
+
+
+
 
 local sGUI = game.StarterGui
 local Cat = true -- test
