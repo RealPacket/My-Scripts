@@ -5,6 +5,7 @@ local games = {
     [{9912491609}] = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Games/How%20Far%20can%20You%20Fly/Orion%20Library/Script.lua",
     [{9498006165}] = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Games/ClickingGames/Tapping%20Simulator/TappingScript.lua",
     [{3851622790}] = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Games/BreakIn/BreakInHubLoader.lua",
+    [{4620170611}] = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Games/BreakIn/KavoUI/Script.lua",
 }
 
 for ids, url in next, games do
