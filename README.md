@@ -1,5 +1,5 @@
-# Script count
-8 (some are missing because they are old af and I don't remember them)
+## Script Hub
+[This script hub](https://www.You_Found_It.gg)
 # Games:<br>
   - How Far can You Fly
     - Yes
