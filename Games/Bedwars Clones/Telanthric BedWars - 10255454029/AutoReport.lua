@@ -121,11 +121,14 @@ function Report(Player, NotifyMethod)
   end
   if not NotfiyMethod then
 	   print("Reported @"..Player.Name.." (@"..Player.DisplayName..")")
-	   elseif NotifyMethod == "Chat" then
-	   Chat("I just false reported @"..Player.Name.." (@"..Player.DisplayName..")")
-	   elseif NotifyMethod == "Notify" then
-	   Notify("AutoReport", "Reported @"..Player.Name.." (@"..Player.DisplayName..")")
 	end
+  if NotifyMethod == "Console" then
+	   print("[AutoReport] Reported @"..Player.Name.." (@"..Player.DisplayName..")")
+  elseif NotifyMethod == "Notify" then
+	   Notify("AutoReport", "Reported @"..Player.Name.." (@"..Player.DisplayName..")")
+  elseif NotifyMethod == "Chat" then
+	  Chat("I just false reported @"..Player.Name.." (@"..Player.DisplayName..")")
+  end
   table.insert(reportedPlrs, Player)
 end
 
