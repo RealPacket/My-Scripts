@@ -12,6 +12,9 @@ shared.AutoReport = {
 	Default text is "No content. Called with nothing to give you."
 	Default duration is 2.
 --]]
+local Services = {
+	["sGUI"] = game:GetService("StarterGui")
+}
 function Notify(Title: string, Text: string, Duration: number?)
 	Services["sGUI"]:SetCore("SendNotification", {
 			Title = Title or "Notification",
@@ -74,7 +77,7 @@ function getDescription(PlayerUID: number|Integer|string)
 end
 
 
-function Report(Player, NotifyMethod: string)
+function Report(Player, NotifyMethod)
   -- various checks that'll return without doing anything.
   -- TODO: Make the AntiReportHacker thing, so that we can have staff truly mald,
   -- as half of the players reported will be legits or hackers without the string in their description.
@@ -118,9 +121,9 @@ function Report(Player, NotifyMethod: string)
   end
   if not NotfiyMethod then
 	   print("Reported @"..Player.Name.." (@"..Player.DisplayName..")")
-	   elseif NotifyMethod == "Chat"
+	   elseif NotifyMethod == "Chat" then
 	   Chat("I just false reported @"..Player.Name.." (@"..Player.DisplayName..")")
-	   elseif NotifyMethod == "Notify"
+	   elseif NotifyMethod == "Notify" then
 	   Notify("AutoReport", "Reported @"..Player.Name.." (@"..Player.DisplayName..")")
 	end
   table.insert(reportedPlrs, Player)
