@@ -90,7 +90,7 @@ function Report(Player, NotifyMethod: string)
     ["entry.352020552"] = Player.DisplayName,
     ["entry.652796102"] = tostring(Player) or Player.Name,
     ["entry.1386130187"] = "-",
-    ["emailAddress"] = "random@random.gg"
+    ["emailAddress"] = "bro_you_really_thought@you_would_get_a_valid_email.lol"
   }
   local options = {
     Url = URL,
@@ -168,6 +168,6 @@ while shared.AutoReport.Config["Enabled"] do
   		RandomPlr = math.random(1, #plrs)
 	   end
   end
-  Report(plrs[RandomPlr])
+  Report(plrs[RandomPlr], "Notify")
   wait(math.random(1, 2.2))
 end
