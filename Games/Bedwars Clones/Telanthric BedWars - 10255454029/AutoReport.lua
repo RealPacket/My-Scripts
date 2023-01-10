@@ -119,7 +119,7 @@ function Report(Player, NotifyMethod)
       print("["..tostring(hName).."] "..tostring(hValue))
     end
   end
-  if not NotfiyMethod then
+  if not NotifyMethod then
 	   print("Reported @"..Player.Name.." (@"..Player.DisplayName..")")
 	end
   if NotifyMethod == "Console" then
