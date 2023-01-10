@@ -1,3 +1,4 @@
+-- Improved version.
 local plrs = {}
 local reportedPlrs = {}
 shared.AutoReport = {
@@ -5,7 +6,20 @@ shared.AutoReport = {
 		["Enabled"] = true
 	}
 }
-local function includes(Table: table, value)
+--[[
+	Notifies the user about something, Maybe you lost some pringles 💀.
+	Default title is "Notification"
+	Default text is "No content. Called with nothing to give you."
+	Default duration is 2.
+--]]
+function Notify(Title: string, Text: string, Duration: number?)
+	Services["sGUI"]:SetCore("SendNotification", {
+			Title = Title or "Notification",
+			Text = Text or "No content. Called with nothing to give you.",
+			Duration = Duration or 2
+		})
+end
+function includes(Table: table, value)
   for _, v in pairs(Table) do
     if v == value then
       return true
@@ -14,6 +28,7 @@ local function includes(Table: table, value)
   return false
 end
 function Chat(Msg: string, channel: string?)
+	if not channel then channel = "All" end
 	if game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents") then
 		getgenv().ChatRemote = game:GetService("ReplicatedStorage")["DefaultChatSystemChatEvents"]["SayMessageRequest"]
 	end
@@ -22,7 +37,6 @@ function Chat(Msg: string, channel: string?)
 	end
 	for _, Remote in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
 		if Remote:IsA("RemoteEvent") then
-			-- game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(msg, channel)
 			if string.find(tostring(Remote) or Remote.Name, "Chat") then
 				Remote:FireServer(Msg)
 			else
@@ -31,8 +45,7 @@ function Chat(Msg: string, channel: string?)
 		end
 	end
 end
-
--- a simple player description getter
+-- all of the functions below trying to access APIs are for the AntiReportHacker bullshit that I want to do soon.
 function getUID(PlayerName: string)
 	local headers = {
 		["username"] = PlayerName
@@ -42,6 +55,8 @@ function getUID(PlayerName: string)
 		Method = "GET",
 		Headers = headers 
 	}
+	-- if your request function isn't really the same then I don't care.
+	-- I use Krnl, Atleast I don't waste money on a lego hack.
 	local response = request(options)
 	local UIDHolder = game:GetService("HttpService").JSONDecode(response.Body)
 	return UIDHolder["Id"]
@@ -59,8 +74,11 @@ function getDescription(PlayerUID: number|Integer|string)
 end
 
 
-function Report(Player, AlertChat: boolean?)
+function Report(Player, NotifyMethod: string)
   -- various checks that'll return without doing anything.
+  -- TODO: Make the AntiReportHacker thing, so that we can have staff truly mald,
+  -- as half of the players reported will be legits or hackers without the string in their description.
+  -- Working on that soon.
   if Player == game.Players.LocalPlayer
   or includes(reportedPlrs, Player) then
     return
@@ -98,10 +116,12 @@ function Report(Player, AlertChat: boolean?)
       print("["..tostring(hName).."] "..tostring(hValue))
     end
   end
-  if not AlertChat then
+  if not NotfiyMethod then
 	   print("Reported @"..Player.Name.." (@"..Player.DisplayName..")")
-	   else
-		Chat("I just false reported @"..Player.Name.." (@"..Player.DisplayName..")")
+	   elseif NotifyMethod == "Chat"
+	   Chat("I just false reported @"..Player.Name.." (@"..Player.DisplayName..")")
+	   elseif NotifyMethod == "Notify"
+	   Notify("AutoReport", "Reported @"..Player.Name.." (@"..Player.DisplayName..")")
 	end
   table.insert(reportedPlrs, Player)
 end
