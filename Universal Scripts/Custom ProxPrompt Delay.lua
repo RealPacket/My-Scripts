@@ -3,7 +3,7 @@
 shared.NoProxPromptWait = 
 {
   ["Config"] = {
-    ["Delay"] = 0 -- anything above 0 isn't instant.
+    ["Delay"] = 0, -- anything above 0 isn't instant.
     ["Enabled"] = true -- if the mod should be enabled.
   }
 }
@@ -18,7 +18,7 @@ for _, ProxPrompt in pairs(workspace:GetDescendants()) do
   if ProxPrompt:IsA("ProximityPrompt") then
     -- Modify the wait delay
     ProxPrompt["HoldDuration"] = SettingsHolder["Config"]["Delay"] or 0 -- Current Config's delay or Instant
-    moddedProximityPrompts:insert(ProxPrompt)
+    table.insert(moddedProximityPrompts, ProxPrompt)
   end
  end
 function noDelay(ProxPrompt)
