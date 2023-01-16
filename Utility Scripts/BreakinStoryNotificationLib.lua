@@ -1,11 +1,13 @@
 local this = {}
 -- Instances:
 local HiddenUI
-if identifyexecutor():find("Syn") then
-	HiddenUI = syn.protect_gui
-	else
-	HiddenUI = gethui
-end
+-- MultiExecutor support at some point
+-- if identifyexecutor():find("Syn") then
+-- 	HiddenUI = syn.protect_gui
+-- 	else
+-- 	HiddenUI = gethui
+-- end
+HiddenUI = gethui
 local SmallNotifications = Instance.new("Frame")
 local NotificationDefault = Instance.new("ImageLabel")
 local Button = Instance.new("ImageButton")
