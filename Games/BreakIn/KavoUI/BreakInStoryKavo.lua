@@ -58,7 +58,6 @@ local LP = {
 	}
 }
 local sGUI = game.StarterGui
-local boolean test = true
 -- Variables for Game Tab, Door Section
 local selectedDoor
 -- Variables for Item Tab, Shop Section
@@ -105,17 +104,17 @@ for _, P in pairs(game:GetService("Players"):GetPlayers()) do
 end
 local function GNHumanoidToPos(player: Player, Distance, overridepos)
 	local closest, returnedplayer = distance, nil
-    if LP["Humanoid"]..Health > 0 then
-        for i, v in pairs(PlayerList) do
-				local mag = (entity.character.HumanoidRootPart.Position - v.RootPart.Position).magnitude
-				if overridepos and mag > Distance then 
-					mag = (overridepos - v.RootPart.Position).magnitude
-				end
-				if mag <= closest then
-					closest = mag
-					returnedplayer = v
-				end
-        end
+    	if LP["Humanoid"].Health > 0 then
+		for i, v in pairs(PlayerList) do
+					local mag = (entity.character.HumanoidRootPart.Position - v.RootPart.Position).magnitude
+					if overridepos and mag > Distance then 
+						mag = (overridepos - v.RootPart.Position).magnitude
+					end
+					if mag <= closest then
+						closest = mag
+						returnedplayer = v
+					end
+		end
 	end
 	return returnedplayer
 end
@@ -138,6 +137,7 @@ function doAllGameEnhancements()
 	end
 	end
 function getDialogText()
+	-- ok
 	fireclickdetector(workspace.Neighbours.Crazy[""].ClickDetector)
 end
 function getAtticItem()
