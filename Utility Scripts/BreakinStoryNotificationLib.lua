@@ -1,6 +1,6 @@
 local this = {}
 -- Instances:
-
+local HiddenUI = syn.protect_gui or gethui
 local SmallNotifications = Instance.new("Frame")
 local NotificationDefault = Instance.new("ImageLabel")
 local Button = Instance.new("ImageButton")
@@ -9,7 +9,7 @@ local XboxButton = Instance.new("ImageLabel")
 
 
 SmallNotifications.Name = "SmallNotifications"
-SmallNotifications.Parent = game.StarterGui.SmallNotifications.SmallNotifications
+SmallNotifications.Parent = HiddenUI()
 SmallNotifications.AnchorPoint = Vector2.new(1, 0.5)
 SmallNotifications.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 SmallNotifications.BackgroundTransparency = 1.000
