@@ -1,6 +1,11 @@
 local this = {}
 -- Instances:
-local HiddenUI = gethui or syn and syn.protect_gui
+local HiddenUI
+if identifyexecutor():find("Syn") then
+	HiddenUI = syn.protect_gui
+	else
+	HiddenUI = gethui
+end
 local SmallNotifications = Instance.new("Frame")
 local NotificationDefault = Instance.new("ImageLabel")
 local Button = Instance.new("ImageButton")
