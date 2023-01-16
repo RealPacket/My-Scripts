@@ -1,6 +1,6 @@
 local this = {}
 -- Instances:
-local HiddenUI = syn.protect_gui or gethui
+local HiddenUI = gethui or syn and syn.protect_gui
 local SmallNotifications = Instance.new("Frame")
 local NotificationDefault = Instance.new("ImageLabel")
 local Button = Instance.new("ImageButton")
