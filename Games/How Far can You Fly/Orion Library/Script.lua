@@ -193,11 +193,11 @@ GTab:AddToggle({
 	end
 })
 GExploit:AddButton({
-	Name = "Disable AC (UNPATCHED AS OF 10/26/2022 & 10/27/2022)",
+	Name = "Disable AC (UNPATCHED AS OF 10/26/2022 & 10/27/2022, GOT PATCHED)",
 	Callback = function()
 		OrionLib:MakeNotification({
 	Name = "AC Disabler is back!",
-	Content = "it got patched, but I made a comeback :)",
+	Content = "it got patched, but I made a comeback :), and it got patched again. What a ass end to a disabler.",
 	Image = "rbxassetid://4483345998",
 	Time = 6
 	})
@@ -283,9 +283,6 @@ ATab:AddSlider({
 MTab:AddButton({
 	Name = "Anti Bad Tiles",
 	Callback = function()
-	for i, v in pairs(game:GetService("Workspace").Tiles:GetDescendants()) do
-		if v.name == "800Studs" or v.Name == "800Studs" or v.name == "700Studs" or v.Name == "700Studs" or v.name == "600Studs" or v.Name == "600Studs" or v.name == "500Studs" or v.Name == "500Studs" or v.name == "400Studs" or v.Name == "400Studs" or v.name == "300Studs" or v.Name == "300Studs" or v.name == "500Studs" or v.Name == "500Studs" or v.name == "400Studs" or v.Name == "400Studs" or v.name == "300Studs" or v.Name == "300Studs" or v.name == "200Studs" or v.Name == "200Studs" or v.name == "600Studs" or v.Name == "600Studs" then v.Parent:Destroy() end
-	end
 end
 })
 MTab:AddButton({
@@ -320,15 +317,5 @@ STab:AddButton({
 	loadstring(game:HttpGet("https://gist.githubusercontent.com/DinosaurXxX/b757fe011e7e600c0873f967fe427dc2/raw/ee5324771f017073fc30e640323ac2a9b3bfc550/dark%2520dex%2520v4", true))()
   	end    
 })
-local httpHook
-httpHook = hookfunction(game.HttpGet, function(self,...)
-   local Args = {...}
-   if Args[1] and type(Args[1]) == "string" then
-       if Args[1]:match("checkPremium.php") then
-           return "true"
-       end
-   end
-   return httpHook(self,...)
-end)
 
 --local OrionLib = loadstring(game:HttpGet(("https://raw.githubusercontent.com/RealPacket/Orion-Backup/main/source")))()
