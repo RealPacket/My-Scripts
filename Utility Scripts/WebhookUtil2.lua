@@ -20,6 +20,7 @@ function WebhookUtils.sendWebhook(url, options: table)
         if options["avatar_url"] then data["avatar_url"] = tostring(options["avatar_url"]) end
         if options["TTS"] and typeof(options["TTS"]) == "boolean" then data["tts"] = options["TTS"] end
         if options["embeds"] and typeof(options["embeds"] == typeof(data["embeds"])) then data["embeds"] = options["embeds"] end
+        if options["username"] and typeof(options["username"]) == "string" then data["username"] = options["username"] end
     end
     local dataString = game:GetService("HttpService"):JSONEncode(data)
     local headers = {
@@ -27,7 +28,7 @@ function WebhookUtils.sendWebhook(url, options: table)
         ["Content-Length"] = #dataString
     }
     local success, response = pcall(function()
-        return game:HttpPostAsync(url, dataString, headers).Success
+        return game:HttpPostAsync(url, dataString, headers)
     end)
     if success and response.Success then
         print("Webhook triggered successfully")
