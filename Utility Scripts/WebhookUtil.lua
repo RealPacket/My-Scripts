@@ -1,5 +1,4 @@
 local WebhookUtils = {}
-local WebhookUtils = {}
 
 function WebhookUtils.sendWebhook(self, url, options)
     if self and not url then
