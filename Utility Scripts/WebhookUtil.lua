@@ -49,7 +49,7 @@ end
 
 
 function WebhookUtils:sendWebhook(url, options)
-    return self.sendWebhook(self, url, options)
+    return WebhookUtils.sendWebhook(self, url, options)
 end
 
 
