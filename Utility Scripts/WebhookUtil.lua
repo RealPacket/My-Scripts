@@ -2,6 +2,7 @@ local WebhookUtils = {}
 
 function WebhookUtils.sendWebhook(self, url, options: table)
     if self then
+        print(typeof(self))
         options = url
         url = self
     end
