@@ -7,6 +7,7 @@ function WebhookUtils.sendWebhook(url, options)
     ]]
     local data = {
         content = "Unspecified.",
+        username = "Unspecified",
         avatar_url = "https://example.com/avatar.png",
         tts = false,
         embeds = {
@@ -41,8 +42,9 @@ function WebhookUtils.sendWebhook(url, options)
         print("Failed to trigger webhook. Response: "..tostring(response))
     end
 end
-
+-- buggy lol
 function WebhookUtils:sendWebhook(url, options)
+    url, options = self, url
     --[[
         The data that this function uses to trigger/send a webhook message.
     ]]
