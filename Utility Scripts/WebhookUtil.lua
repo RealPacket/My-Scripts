@@ -1,5 +1,5 @@
 local WebhookUtils = {}
-
+local req = request or syn and syn.request
 function WebhookUtils.sendWebhook(url, options)
     if self then return WebhookUtils:sendWebhook(url, options) end
     --[[
@@ -30,7 +30,7 @@ function WebhookUtils.sendWebhook(url, options)
         ["Content-Length"] = #dataString
     }
     local success, response = pcall(function()
-        return request({
+        return req({
             Url = url,
             Method = "POST",
             Headers = headers,
