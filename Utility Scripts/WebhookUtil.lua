@@ -44,7 +44,6 @@ function WebhookUtils.sendWebhook(url, options)
 end
 -- buggy lol
 function WebhookUtils:sendWebhook(url, options)
-    url, options = self, url
     --[[
         The data that this function uses to trigger/send a webhook message.
     ]]
