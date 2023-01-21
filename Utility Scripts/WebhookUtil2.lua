@@ -1,10 +1,6 @@
 local WebhookUtils = {}
 
-function WebhookUtils.sendWebhook(self, url, options)
-    if self then
-        options = url
-        url = self
-    end
+function WebhookUtils.sendWebhook(url, options: table)
     --[[
         The data that this function uses to trigger/send a webhook message.
     ]]
@@ -26,13 +22,13 @@ function WebhookUtils.sendWebhook(self, url, options)
         if options["embeds"] and typeof(options["embeds"] == typeof(data["embeds"])) then data["embeds"] = options["embeds"] end
         if options["username"] and typeof(options["username"]) == "string" then data["username"] = options["username"] end
     end
-    local jsonData = game:GetService("HttpService"):JSONEncode(data)
+    local dataString = game:GetService("HttpService"):JSONEncode(data)
     local headers = {
         ["Content-Type"] = "application/json",
-        ["Content-Length"] = #jsonData
+        ["Content-Length"] = #dataString
     }
     local success, response = pcall(function()
-        return game:HttpPostAsync(url, jsonData, headers)
+        return game:HttpPostAsync(url, dataString, headers).Success
     end)
     if success and response.Success then
         print("Webhook triggered successfully")
