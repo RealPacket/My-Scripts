@@ -1,6 +1,7 @@
 local WebhookUtils = {}
 
 function WebhookUtils.sendWebhook(url, options)
+    if self then return WebhookUtils:sendWebhook(url, options) end
     --[[
         The data that this function uses to trigger/send a webhook message.
     ]]
