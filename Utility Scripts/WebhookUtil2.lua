@@ -1,6 +1,10 @@
 local WebhookUtils = {}
 
 function WebhookUtils.sendWebhook(self, url, options)
+    if self then
+        options = url
+        url = self
+    end
     --[[
         The data that this function uses to trigger/send a webhook message.
     ]]
@@ -35,10 +39,6 @@ function WebhookUtils.sendWebhook(self, url, options)
     else
         print("Failed to trigger webhook. Response: "..tostring(response))
     end
-end
-
-function WebhookUtils:sendWebhook(url, options)
-    return self.sendWebhook(self, url, options)
 end
 
 return WebhookUtils
