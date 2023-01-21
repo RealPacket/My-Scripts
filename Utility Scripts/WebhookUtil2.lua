@@ -32,7 +32,7 @@ function WebhookUtils.sendWebhook(self, url, options)
         ["Content-Length"] = #jsonData
     }
     local success, response = pcall(function()
-        return game:HttpsPostAsync(url, jsonData, headers)
+        return game:HttpPostAsync(url, jsonData, headers)
     end)
     if success and response.Success then
         print("Webhook triggered successfully")
