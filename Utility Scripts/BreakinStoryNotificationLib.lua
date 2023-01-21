@@ -2,7 +2,7 @@ local this = {}
 -- Instances:
 local HiddenUI
 -- MultiExecutor support at some point
--- if identifyexecutor():find("Syn") then
+-- if identifyexecutor():find("syn") then
 -- 	HiddenUI = syn.protect_gui
 -- 	else
 -- 	HiddenUI = gethui
