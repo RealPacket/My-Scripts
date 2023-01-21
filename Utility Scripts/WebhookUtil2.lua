@@ -28,7 +28,7 @@ function WebhookUtils.sendWebhook(url, options: table)
         ["Content-Length"] = #dataString
     }
     local success, response = pcall(function()
-        return game:HttpPostAsync(url, dataString, headers).Success
+        return game:HttpPostAsync(url, dataString, headers)
     end)
     if success and response.Success then
         print("Webhook triggered successfully")
