@@ -1,12 +1,10 @@
 local WebhookUtils = {}
+local WebhookUtils = {}
 
-function WebhookUtils.sendWebhook(self, url, options: table)
-    if self then
-        print(typeof(self))
-        options = url
-        url = self
+function WebhookUtils.sendWebhook(self, url, options)
+    if self and not url then
+        url, options = self, url
     end
-    print("DEBUG: URL - "..tostring(url))
     --[[
         The data that this function uses to trigger/send a webhook message.
     ]]
@@ -40,12 +38,6 @@ function WebhookUtils.sendWebhook(self, url, options: table)
             Body = dataString
         })
     end)
-    if success and response.Success then
-        print("Webhook triggered successfully")
-    else
-        print("Failed to trigger webhook. Response: "..tostring(response))
-    end
-end
 
 
 function WebhookUtils:sendWebhook(url, options)
