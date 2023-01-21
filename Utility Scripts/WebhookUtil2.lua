@@ -22,13 +22,13 @@ function WebhookUtils:sendWebhook(url, options: table)
         if options["embeds"] and typeof(options["embeds"] == typeof(data["embeds"])) then data["embeds"] = options["embeds"] end
         if options["username"] and typeof(options["username"]) == "string" then data["username"] = options["username"] end
     end
-    local dataString = game:GetService("HttpService"):JSONEncode(data)
+    local jsonData = game:GetService("HttpService"):JSONEncode(data)
     local headers = {
         ["Content-Type"] = "application/json",
-        ["Content-Length"] = #dataString
+        ["Content-Length"] = #jsonData
     }
     local success, response = pcall(function()
-        return game:HttpPostAsync(url, dataString, headers)
+        return game:HttpsPostAsync(url, jsonData, headers)
     end)
     if success and response.Success then
         print("Webhook triggered successfully")
