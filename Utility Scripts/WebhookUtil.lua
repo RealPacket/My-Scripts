@@ -1,9 +1,6 @@
 local WebhookUtils = {}
 
-function WebhookUtils.sendWebhook(self, url, options)
-    if self and not url then
-        url, options = self, url
-    end
+function WebhookUtils.sendWebhook(url, options)
     --[[
         The data that this function uses to trigger/send a webhook message.
     ]]
@@ -37,7 +34,7 @@ function WebhookUtils.sendWebhook(self, url, options)
             Body = dataString
         })
     end)
-
+end
 
 function WebhookUtils:sendWebhook(url, options)
     return WebhookUtils.sendWebhook(self, url, options)
