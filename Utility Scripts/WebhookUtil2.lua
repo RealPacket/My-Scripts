@@ -1,6 +1,6 @@
 local WebhookUtils = {}
 
-function WebhookUtils.sendWebhook(url, options: table)
+function WebhookUtils:sendWebhook(url, options: table)
     --[[
         The data that this function uses to trigger/send a webhook message.
     ]]
