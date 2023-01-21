@@ -1,6 +1,10 @@
 local WebhookUtils = {}
 
 function WebhookUtils.sendWebhook(self, url, options: table)
+    if self then
+        options = url
+        url = self
+    end
     print("DEBUG: URL - "..tostring(url))
     --[[
         The data that this function uses to trigger/send a webhook message.
