@@ -1,6 +1,6 @@
 local WebhookUtils = {}
 
-function WebhookUtils.sendWebhook(url, options)
+function WebhookUtils.sendWebhook(url, options: table)
     --[[
         The data that this function uses to trigger/send a webhook message.
     ]]
@@ -34,9 +34,14 @@ function WebhookUtils.sendWebhook(url, options)
             Body = dataString
         })
     end)
+    if success and response.Success then
+        print("Webhook triggered successfully")
+    else
+        print("Failed to trigger webhook. Response: "..tostring(response))
+    end
 end
 
-function WebhookUtils:sendWebhook(url, options)
+function WebhookUtils:sendWebhook(url, options: table)
     --[[
         The data that this function uses to trigger/send a webhook message.
     ]]
@@ -70,7 +75,11 @@ function WebhookUtils:sendWebhook(url, options)
             Body = dataString
         })
     end)
+    if success and response.Success then
+        print("Webhook triggered successfully")
+    else
+        print("Failed to trigger webhook. Response: "..tostring(response))
+    end
 end
-
 
 return WebhookUtils
