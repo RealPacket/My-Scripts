@@ -6,6 +6,7 @@ function WebhookUtils.sendWebhook(url, options)
         The data that this function uses to trigger/send a webhook message.
     ]]
     local data = {
+        Url = url,
         content = "Unspecified.",
         username = "Unspecified",
         avatar_url = "https://example.com/avatar.png",
