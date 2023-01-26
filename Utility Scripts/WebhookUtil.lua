@@ -6,7 +6,6 @@ function WebhookUtils.sendWebhook(url, options)
         The data that this function uses to trigger/send a webhook message.
     ]]
     local data = {
-        Url = url,
         content = "Unspecified.",
         username = "Unspecified",
         avatar_url = "https://example.com/avatar.png",
@@ -31,6 +30,7 @@ function WebhookUtils.sendWebhook(url, options)
         ["Content-Length"] = #dataString
     }
     local success, response = pcall(function()
+        print(url)
         return req({
             Url = url,
             Method = "POST",
