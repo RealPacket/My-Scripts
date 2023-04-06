@@ -1,5 +1,5 @@
 local WebhookUtils = {}
-local req = request or syn and syn.request
+local req = if Krnl then request elseif syn then syn.request else nil
 function WebhookUtils.sendWebhook(url, options)
     if self then return WebhookUtils:sendWebhook(url, options) end
     --[[
