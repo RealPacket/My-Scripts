@@ -13,6 +13,6 @@
       
       
       
-      - Exploit Section
-          - AC Disablers
-            - Only Seal Secure Right now (you have to re-execute it when you die because then it starts making its scripts with math.random name).
+   - Exploit Section
+    - AC Disablers
+      - Only Seal Secure Right now (you have to re-execute it when you die).
