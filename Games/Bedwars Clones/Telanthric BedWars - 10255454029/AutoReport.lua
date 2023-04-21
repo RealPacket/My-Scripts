@@ -1,4 +1,15 @@
+local Services = {
+	sGUI = game:GetService("StarterGui")
+}
 -- Improved version.
+function Notify(Title: string, Text: string, Duration: number?)
+	Services["sGUI"]:SetCore("SendNotification", {
+			Title = Title or "Notification",
+			Text = Text or "No content. Called with nothing to give you.",
+			Duration = Duration or 2
+		})
+end
+Notify("AutoReport", "AutoReport is currently patched, please use it later when it finally gets unpatched")
 local plrs = {}
 local reportedPlrs = {}
 shared.AutoReport = {
@@ -12,16 +23,6 @@ shared.AutoReport = {
 	Default text is "No content. Called with nothing to give you."
 	Default duration is 2.
 --]]
-local Services = {
-	["sGUI"] = game:GetService("StarterGui")
-}
-function Notify(Title: string, Text: string, Duration: number?)
-	Services["sGUI"]:SetCore("SendNotification", {
-			Title = Title or "Notification",
-			Text = Text or "No content. Called with nothing to give you.",
-			Duration = Duration or 2
-		})
-end
 function includes(Table: table, value)
   for _, v in pairs(Table) do
     if v == value then
