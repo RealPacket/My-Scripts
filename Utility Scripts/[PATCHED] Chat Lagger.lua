@@ -1,3 +1,4 @@
+-- NOTE: this has been patched.
 -- lag
 local sendMsg = "💫"
 local Unicode = " "
