@@ -137,9 +137,7 @@ function figlet(msg)
 	return messages
 end
 local connections: { { RBXScriptConnection } } = {
-	Chatted = {},
-	PlayerAdded = {},
-	PlayerRemoving = {},
+	Chat = nil,
 }
 
 function connections:getConnections()
@@ -228,26 +226,26 @@ local function Chat(message: string, broadcast: boolean, target: Player)
 end
 
 type command = {
-    description: string?,
-    callback: (user: Player, args: {string | number | boolean}) -> ()
+	description: string?,
+	callback: (user: Player, args: { string | number | boolean }) -> (),
 }
 
-type commands = {[string]: command}
+type commands = { [string]: command }
 
 local commands: commands = {
-    autoconverttesting = {
-        description = "For testing auto-converting",
-        options = {
-            autoConvert = true
-        },
-        callback = function(_, args)
-            local chatString = "Args: "
-            for i, arg in args do
-                chatString ..= tostring(arg) .. " ("..type(arg)..")" .. (i ~= #args and ", " or "")
-            end
-            Chat(chatString)
-        end
-    },
+	autoconverttesting = {
+		description = "For testing auto-converting",
+		options = {
+			autoConvert = true,
+		},
+		callback = function(_, args)
+			local chatString = "Args: "
+			for i, arg in args do
+				chatString ..= tostring(arg) .. " (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
+			end
+			Chat(chatString)
+		end,
+	},
 	test = {
 		description = "A testing command.",
 		callback = function(_, args)
@@ -294,22 +292,21 @@ local commands: commands = {
 			Chat("Toggled shift-lock " .. (if state then "on" else "off") .. "!")
 		end,
 	},
-	-- how to get banned 101:
-	-- say = {
-	-- 	description = "Obvious.",
-	-- 	callback = function(_, args)
-	-- 		if not args[1] then
-	-- 			Chat("You didn't provide the first argument (which is what I will say)")
-	-- 		end
-	-- 		local str = args[1]
-	-- 		table.remove(args, 1)
-	-- 		task.wait()
-	-- 		for _, part in args do
-	-- 			str ..= " " .. part
-	-- 		end
-	-- 		Chat(str)
-	-- 	end,
-	-- },
+	say = {
+		description = "Obvious.",
+		callback = function(_, args)
+			if not args[1] then
+				Chat("You didn't provide the first argument (which is what I will say)")
+			end
+			local str = args[1]
+			table.remove(args, 1)
+			task.wait()
+			for _, part in args do
+				str ..= " " .. part
+			end
+			Chat(str)
+		end,
+	},
 	help = {
 		description = "Lists all commands, " .. "descriptions, and examples (if provided)",
 	},
@@ -505,82 +502,50 @@ local function handler(msg: string, player: Player)
 	callback(player, args)
 end
 
-function registerPlayer(p: Player)
-	if not isWhitelisted(p) then
-		return nil
-	end
-
-	local function registerChattedEventLCS()
-		connections.Chatted[p.UserId] = p.Chatted:Connect(function(message, recip)
-			debug({ { name = "msg", value = message }, { name = "recip", value = recip or "nil" } })
-			if message:sub(1, 1) ~= config.prefix then
-				table.insert(logs.Game.Chat, {
-					Author = p,
-					msg = message,
-					recipient = recip,
-				})
-				return
-			end
-			handler(message, p)
-		end)
-	end
-
-	local function registerChattedEventTCS()
-		connections.Chatted[1] = TextChatService.MessageReceived:Connect(function(msg)
-			if not msg.TextSource then
-				return
-			end
-			if not msg.TextSource.UserId then
-				return
-			end
-			local author = Players:GetPlayerByUserId(msg.TextSource.UserId)
-			if author == LocalPlayer then
-				return
-			end
-			if msg.Text:sub(1, #escapeHTML(config.prefix)) ~= escapeHTML(config.prefix) then
-				table.insert(logs.Game.Chat, {
-					Author = author,
-					msg = msg.Text,
-					recipient = nil,
-				})
-				return
-			end
-			handler(msg.Text, author)
-		end)
-	end
-
-	local function registerChattedEvent()
-		return if isLegacy then registerChattedEventLCS() else registerChattedEventTCS()
-	end
-
-	registerChattedEvent()
-	return if isLegacy then connections.Chatted[p.UserId] else connections.Chatted[1]
-end
-
-if isLegacy then
-	-- loop through players and connect to the chatted event.
-	for _, player in ipairs(Players:GetPlayers()) do
-		-- make sure the player isn't us.
-		if player == LocalPlayer then
-			continue
+local function registerChattedEventLCS()
+	connections.Chat = Players.PlayerChatted:Connect(function(chatType, player, message, targetPlayer)
+		debug({ { name = "msg", value = message }, { name = "recip", value = targetPlayer or "nil" } })
+		if message:sub(1, 1) ~= config.prefix then
+			table.insert(logs.Game.Chat, {
+				Author = player,
+				msg = message,
+				recipient = targetPlayer,
+			})
+			return
 		end
-		registerPlayer(player)
-	end
-else
-	registerPlayer(1)
+		handler(message, player)
+	end)
 end
-task.spawn(function()
-	table.insert(
-		connections.PlayerRemoving,
-		Players.PlayerRemoving:Connect(function(p)
-			if connections.Chatted[p.UserId] then
-				connections.Chatted[p.UserId]:Disconnect()
-				connections.Chatted[p.UserId] = nil
-				return
-			end
-		end)
-	)
-end)
+
+local function registerChattedEventTCS()
+	connections.Chat = TextChatService.MessageReceived:Connect(function(msg)
+		if not msg.TextSource then
+			return
+		end
+		if not msg.TextSource.UserId then
+			return
+		end
+		local author = Players:GetPlayerByUserId(msg.TextSource.UserId)
+		if author == LocalPlayer then
+			return
+		end
+		if msg.Text:sub(1, #escapeHTML(config.prefix)) ~= escapeHTML(config.prefix) then
+			table.insert(logs.Game.Chat, {
+				Author = author,
+				msg = msg.Text,
+				recipient = nil,
+			})
+			return
+		end
+		handler(msg.Text, author)
+	end)
+end
+
+local function registerChattedEvent()
+	return if isLegacy then registerChattedEventLCS() else registerChattedEventTCS()
+end
+
+registerChattedEvent()
 
 getgenv().__destroy_bot = function(isReboot)
 	getgenv().__destroy_bot = nil
