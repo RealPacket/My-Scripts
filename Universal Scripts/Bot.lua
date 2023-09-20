@@ -61,6 +61,7 @@ local config = {
 		StartMessage = "[INFO]: Started bot in {MODE} mode! "
 			.. 'Prefix is "{PREFIX}", '
 			.. 'Use "{PREFIX}cmds" for a list of commands!',
+		UnknownCommandMessage = "Unknown command " .. '"{COMMAND}"! Try using "{PREFIX}cmds" for a list of commands.',
 	},
 }
 
@@ -102,13 +103,46 @@ local function format(str, argsTable)
 	return str
 end
 
+type ChatLog = {
+	Author: Player,
+	Message: string,
+	Recipient: Player,
+	timeStamp: DateTime,
+}
+
+type ConsoleLogs = {
+	Errors: { string },
+	Warnings: { string },
+	Logs: { string },
+}
+
+type GameLogs = {
+	Chat: { ChatLog },
+}
+
+type CommandLog = {
+	args: {},
+	command: command,
+	time: DateTime,
+}
+
+type BotLogs = {
+	Commands: { CommandLog },
+}
+
+type logs = {
+	Console: ConsoleLogs,
+	Game: GameLogs,
+	Bot: BotLogs,
+}
+
 -- general logs.
-local logs = {
+local logs: logs = {
 	-- yes
 	Console = {
 		Errors = {},
 		Warnings = {},
-		Prints = {},
+		Logs = {},
 	},
 	Game = {
 		Chat = {},
@@ -204,6 +238,10 @@ local function GetPlayerByName(name: string, caseInsensitive: boolean?, requesti
 end
 
 -- send a message in Chat.
+---@param message string
+---@param broadcast boolean
+---@param target Player
+---@return TextChatMessage|nil
 local function Chat(message: string, broadcast: boolean, target: Player)
 	if broadcast == nil or type(broadcast) ~= "boolean" then
 		broadcast = true
@@ -212,13 +250,29 @@ local function Chat(message: string, broadcast: boolean, target: Player)
 		ChatEvent:FireServer(message, if broadcast then "All" else "To " .. target)
 	else
 		local inputBarConfiguration: ChatInputBarConfiguration = TextChatService.ChatInputBarConfiguration
-		task.spawn(inputBarConfiguration.TargetTextChannel.SendAsync, inputBarConfiguration.TargetTextChannel, message)
+		-- return inputBarConfiguration.TargetTextChannel:SendAsync(message)
+		return task.spawn(
+			inputBarConfiguration.TargetTextChannel.SendAsync,
+			inputBarConfiguration.TargetTextChannel,
+			message
+		)
 	end
 end
 
 type command = {
 	description: string?,
-	callback: (user: Player, args: { string | number | boolean }) -> (),
+	options: {
+		autoConvert: boolean?,
+		extraRawArgsParam: boolean?,
+	}?,
+	callback: (
+		---player that ran the command
+		user: Player,
+		---arguments (only strings if options.autoConvert is false)
+		args: { string | number | boolean },
+		---only if options.extraRawArgsParam is set to true
+		rawArgs: { string }?
+	) -> (),
 }
 
 type commands = { [string]: command }
@@ -228,11 +282,12 @@ local commands: commands = {
 		description = "For testing auto-converting",
 		options = {
 			autoConvert = true,
+			extraRawArgsParam = true,
 		},
-		callback = function(_, args)
+		callback = function(_, args, rawArgs)
 			local chatString = "Args: "
 			for i, arg in args do
-				chatString ..= tostring(arg) .. " (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
+				chatString ..= tostring(arg) .. " / raw: "..rawArgs[i].." (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
 			end
 			Chat(chatString)
 		end,
@@ -273,10 +328,12 @@ local commands: commands = {
 	},
 	shiftlock = {
 		description = "Toggles shift-lock (or set the state manually).",
+		options = {
+			autoConvert = true,
+		},
 		callback = function(_, args)
-			local state = if args[1] ~= nil
-				then true
-				else UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter
+			local state = args[1] and Enum.MouseBehavior.Default
+				or UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter
 
 			UserInputService.MouseBehavior = state and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
 
@@ -345,7 +402,7 @@ local commands: commands = {
 		description = "uhh yes (args (2): name and msg)",
 		callback = function(_, args)
 			local a = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ "
-			return Chat(a .. ((args[1] .. ": ") or "System: ") .. (args[2] or "Shutting down in 69 seconds.."))
+			return Chat(a .. ((args[1] or "System") .. ": ") .. (args[2] or "Shutting down in 69 seconds.."))
 		end,
 	},
 	figlet = {
@@ -371,6 +428,22 @@ local commands: commands = {
 		description = "follows a player. (1 arg required, if not specified, it will stop following)",
 		followingPlayer = false,
 		target = nil,
+	},
+	getlogs = {
+		description = "Lists all logged messages.",
+		callback = function()
+			local chatLogs: { ChatLog } = table.clone(logs.Game.Chat)
+			Chat("Logs:")
+			task.wait()
+			for _, log in chatLogs do
+				Chat("_\tMessage: " .. log.Message)
+				task.wait(3)
+				Chat("_\tAuthor: " .. log.Author.DisplayName)
+				task.wait(4)
+				Chat("_\tTime: " .. log.timeStamp:FormatUniversalTime("MMM D H:MM:SS", "en-us"))
+				task.wait(3)
+			end
+		end,
 	},
 }
 
@@ -437,6 +510,8 @@ function commands.speed.callback(_, args)
 	Character:FindFirstChildOfClass("Humanoid").WalkSpeed = tonumber(args[1])
 end
 
+---@param msg string
+---@param player Player
 local function handler(msg: string, player: Player)
 	local commandName = msg:gsub(
 		if not isLegacy
@@ -459,12 +534,16 @@ local function handler(msg: string, player: Player)
 		end
 	end
 	-- determines if the command is valid
-	local isValid = commands[commandName] ~= nil
-	if not isValid then
-		return Chat('Invalid command "' .. commandName .. '"' .. "!")
+	local commandExists = commands[commandName] ~= nil
+	if not commandExists then
+		return Chat(format(config.MessageFormats.UnknownCommandMessage, {
+			PREFIX = config.prefix,
+			COMMAND = commandName,
+		}))
 	end
-
-	if commands[commandName].options and commands[commandName].options.autoConvert then
+	local command = commands[commandName]
+	local rawArgs = table.clone(args)
+	if command.options and command.options.autoConvert then
 		-- auto-convert the arguments.
 		for i, arg in args do
 			-- number
@@ -477,6 +556,8 @@ local function handler(msg: string, player: Player)
 			local boolMap = {
 				yes = true,
 				no = false,
+				on = true,
+				off = false,
 				["false"] = false,
 				["true"] = true,
 			}
@@ -490,20 +571,25 @@ local function handler(msg: string, player: Player)
 	-- the command's callback (gets ran when a player triggers it).
 	local callback = commands[commandName].callback
 	if not callback then
-		return Chat('Command "' .. commandName .. '"' .. " Doesn't seem to have a callback!")
+		return Chat('Command "' .. commandName .. '"' .. " doesn't seem to have a callback!")
+	end
+	local params = {player, args}
+	if command.options.extraRawArgsParam then
+		table.insert(params, rawArgs)
 	end
 	-- run it!
-	callback(player, args)
+	task.spawn(callback, unpack(params))
 end
 
 local function registerChattedEventLCS()
-	connections.Chat = Players.PlayerChatted:Connect(function(chatType, player, message, targetPlayer)
+	connections.Chat = Players.PlayerChatted:Connect(function(_, player, message, targetPlayer)
 		debug({ { name = "msg", value = message }, { name = "recip", value = targetPlayer or "nil" } })
 		if message:sub(1, 1) ~= config.prefix then
 			table.insert(logs.Game.Chat, {
 				Author = player,
-				msg = message,
-				recipient = targetPlayer,
+				Message = message,
+				Recipient = targetPlayer,
+				timeStamp = DateTime.now(),
 			})
 			return
 		end
@@ -526,8 +612,9 @@ local function registerChattedEventTCS()
 		if msg.Text:sub(1, #escapeHTML(config.prefix)) ~= escapeHTML(config.prefix) then
 			table.insert(logs.Game.Chat, {
 				Author = author,
-				msg = msg.Text,
-				recipient = nil,
+				Message = msg.Text,
+				Channel = msg.TextChannel,
+				timeStamp = DateTime.now(),
 			})
 			return
 		end
