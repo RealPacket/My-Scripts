@@ -207,7 +207,7 @@ local whitelisted: { number } = {
 
     @returns If the player can run the command
 ]]
-local function isWhitelisted(player: Player, commandName: string?)
+local function canPlayerUseCommand(player: Player, command: command)
 	if config.whitelistEnabled then
 		return table.find(whitelisted, player.UserId) ~= nil
 	end
@@ -236,13 +236,12 @@ local function GetPlayerByName(name: string, caseInsensitive: boolean?, requesti
 	error(`No player with the name "{name}" was found.`)
 	return nil
 end
-
 -- send a message in Chat.
 ---@param message string
 ---@param broadcast boolean
 ---@param target Player
 ---@return TextChatMessage|nil
-local function Chat(message: string, broadcast: boolean, target: Player)
+local function Chat(message: string, broadcast: boolean, target: Player, options: chatOptions)
 	if broadcast == nil or type(broadcast) ~= "boolean" then
 		broadcast = true
 	end
@@ -258,7 +257,6 @@ local function Chat(message: string, broadcast: boolean, target: Player)
 		)
 	end
 end
-
 type command = {
 	description: string?,
 	options: {
@@ -287,7 +285,7 @@ local commands: commands = {
 		callback = function(_, args, rawArgs)
 			local chatString = "Args: "
 			for i, arg in args do
-				chatString ..= tostring(arg) .. " / raw: "..rawArgs[i].." (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
+				chatString ..= tostring(arg) .. " / raw: " .. rawArgs[i] .. " (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
 			end
 			Chat(chatString)
 		end,
@@ -297,6 +295,15 @@ local commands: commands = {
 		callback = function(_, args)
 			Chat("Args: " .. table.concat(args, ", "))
 		end,
+	},
+	re = {
+		description = "resets the bot's character.",
+		callback = function()
+			if not Character then return end
+			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+			if not Humanoid then return end
+			Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+		end
 	},
 	vclip = {
 		description = "vertically clips the bot's HumanoidRootPart position up.",
@@ -340,21 +347,21 @@ local commands: commands = {
 			Chat("Toggled shift-lock " .. (if state then "on" else "off") .. "!")
 		end,
 	},
-	say = {
-		description = "Obvious.",
-		callback = function(_, args)
-			if not args[1] then
-				Chat("You didn't provide the first argument (which is what I will say)")
-			end
-			local str = args[1]
-			table.remove(args, 1)
-			task.wait()
-			for _, part in args do
-				str ..= " " .. part
-			end
-			Chat(str)
-		end,
-	},
+	-- say = {
+	-- 	description = "Obvious.",
+	-- 	callback = function(_, args)
+	-- 		if not args[1] then
+	-- 			Chat("You didn't provide the first argument (which is what I will say)")
+	-- 		end
+	-- 		local str = args[1]
+	-- 		table.remove(args, 1)
+	-- 		task.wait()
+	-- 		for _, part in args do
+	-- 			str ..= " " .. part
+	-- 		end
+	-- 		Chat(str)
+	-- 	end,
+	-- },
 	help = {
 		description = "Lists all commands, " .. "descriptions, and examples (if provided)",
 	},
@@ -385,26 +392,25 @@ local commands: commands = {
 	},
 	hipheight = {
 		description = "Set the bot's hip height!",
+		options = {
+			autoConvert = true,
+		},
 		callback = function(_, args)
 			if not args[1] then
 				Chat("I need 1 argument, but I got none.")
 				return
 			end
-			if not tonumber(args[1]) then
-				Chat("I got 1 argument, but it's not a valid number.")
-				return
-			end
 
-			Character:FindFirstChildOfClass("Humanoid").HipHeight = tonumber(args[1])
+			Character:FindFirstChildOfClass("Humanoid").HipHeight = args[1]
 		end,
 	},
-	fakesay = {
-		description = "uhh yes (args (2): name and msg)",
-		callback = function(_, args)
-			local a = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ "
-			return Chat(a .. ((args[1] or "System") .. ": ") .. (args[2] or "Shutting down in 69 seconds.."))
-		end,
-	},
+	-- fakesay = {
+	-- 	description = "uhh yes (args (2): name and msg)",
+	-- 	callback = function(_, args)
+	-- 		local a = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ "
+	-- 		return Chat(a .. ((args[1] or "System") .. ": ") .. (args[2] or "Shutting down in 69 seconds.."))
+	-- 	end,
+	-- },
 	figlet = {
 		description = "Turns some normal ASCII text " .. "into a message that uses symbols.",
 		callback = function(user, args)
@@ -521,7 +527,7 @@ local function handler(msg: string, player: Player)
 	)
 		:split(" ")[1]
 	-- are they whitelisted?
-	if not isWhitelisted(player, commandName) then
+	if not canPlayerUseCommand(player, commandName) then
 		Chat("You aren't whitelisted, @" .. player.DisplayName .. ".")
 		return
 	end
@@ -573,8 +579,8 @@ local function handler(msg: string, player: Player)
 	if not callback then
 		return Chat('Command "' .. commandName .. '"' .. " doesn't seem to have a callback!")
 	end
-	local params = {player, args}
-	if command.options.extraRawArgsParam then
+	local params = { player, args }
+	if command.options and command.options.extraRawArgsParam then
 		table.insert(params, rawArgs)
 	end
 	-- run it!
