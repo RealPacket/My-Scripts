@@ -3,6 +3,7 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TextChatService = game:GetService("TextChatService")
 local UserInputService = game:GetService("UserInputService")
 -- if the chat system version isn't Enum.ChatVersion.TextChatService,
@@ -23,6 +24,8 @@ end
 -- it's for escaping the prefix
 -- if it contains some characters that TextChatService escapes into HTML entities
 -- I really hate the escaping, but this is a work-around.
+---@param str string The string to escape
+---@return string The escaped version of the string.
 local function escapeHTML(str)
 	str = str:gsub("&", "&amp;")
 	str = str:gsub("<", "&lt;")
@@ -32,6 +35,8 @@ local function escapeHTML(str)
 	return str
 end
 
+---@param str string The string to escape
+---@return string escaped The escaped version of the string.
 local function unescapeHTML(str)
 	str = str:gsub("&amp;", "&")
 	str = str:gsub("&lt;", "<")
@@ -55,7 +60,7 @@ local config = {
 	MessageFormats = {
 		StartMessage = "[INFO]: Started bot in {MODE} mode! "
 			.. 'Prefix is "{PREFIX}", '
-			.. 'Use "{PREFIX}help" for a list of commands!',
+			.. 'Use "{PREFIX}cmds" for a list of commands!',
 	},
 }
 
@@ -136,32 +141,18 @@ function figlet(msg)
 	end
 	return messages
 end
-local connections: { { RBXScriptConnection } } = {
+local connections: { RBXScriptConnection } = {
 	Chat = nil,
 }
-
-function connections:getConnections()
-	local conns: { RBXScriptConnection } = {}
-	for _, connHolder: { { RBXScriptConnection } } in connections do
-		if type(connHolder) ~= "table" then
-			continue
-		end
-		for _, conn in connHolder do
-			table.insert(conns, conn)
-		end
-	end
-	return conns
-end
 
 local LocalPlayer = Players.LocalPlayer
 
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
 LocalPlayer.CharacterAdded:Connect(function()
-	LocalPlayer.CharacterAdded:Wait()
-	game:GetService("RunService").PostSimulation:Wait()
+	RunService.PostSimulation:Wait()
 	task.wait()
-	Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	Character = LocalPlayer.Character
 end)
 
 --[[
@@ -313,9 +304,6 @@ local commands: commands = {
 	spin = {
 		description = "spin around! (speed defaults to 20)",
 		callback = function(_, args)
-			if args[1] and not tonumber(args[1]) then
-				Chat("Invalid number, please enter a valid number (e.x. 1).")
-			end
 			local speed = tonumber(args[1]) or 20
 			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
 			local RootPart = Humanoid.RootPart
@@ -324,7 +312,7 @@ local commands: commands = {
 				RootPart:FindFirstChild("Spinning"):Destroy()
 				return
 			end
-			if speed >= math.huge then
+			if speed >= 800 then
 				return Chat("No.")
 			end
 			if RootPart:FindFirstChild("Spinning") then
@@ -406,14 +394,20 @@ function commands.follow.callback(user, args)
 
 	Character:FindFirstChildOfClass("Humanoid"):MoveTo(targetCharacter:GetPivot().Position)
 end
+local helping = false
 function commands.help.callback()
+	if helping then
+		return Chat(":skull:")
+	end
 	Chat("Commands:")
+	helping = true
 	for name, cmd in commands do
 		Chat(name .. ":")
 		task.wait()
 		Chat("_     - " .. (if cmd.description then cmd.description else "No description provided"))
 		task.wait(2.4)
 	end
+	helping = false
 end
 
 function commands.cmds.callback()
@@ -549,7 +543,7 @@ registerChattedEvent()
 
 getgenv().__destroy_bot = function(isReboot)
 	getgenv().__destroy_bot = nil
-	for _, connection in connections:getConnections() do
+	for _, connection in connections do
 		-- stop listening to other connections
 		connection:Disconnect()
 	end
