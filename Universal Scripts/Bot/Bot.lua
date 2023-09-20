@@ -303,10 +303,16 @@ local base = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/"
 ---@return string
 local function githubRequest(path)
 	if not isfile("Betabot/" .. path) then
-		writefile("Betabot/" .. path, game:HttpGet(base .. path))
-		return readfile(path)
+		local suc, res
+		suc, res = pcall(function()
+			return game:HttpGet(base .. path, true)
+		end)
+		if not suc or res == "404: Not Found" then
+			error(res)
+		end
+		writefile("Betabot/" .. path, res)
 	end
-	return readfile(path)
+	return readfile("Betabot/" .. path)
 end
 
 ---@param file string
@@ -322,7 +328,7 @@ local function createCommand(name: string, command: command): command
 		error('Argument #1: expected a string for name, got "' .. tostring(name) .. '".')
 	end
 	if commands[name] then
-		warn("Command ".. '"', name .. '"' .. "was created before this call of createCommand, overriding.")
+		warn("Command " .. '"', name .. '"' .. "was created before this call of createCommand, overriding.")
 	end
 	commands[name] = command
 
@@ -337,7 +343,7 @@ local exports = {
 	req,
 	commands = commands,
 	logs = logs,
-	Character = Character
+	Character = Character,
 }
 
 -- local info = debug.getinfo
