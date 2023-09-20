@@ -66,7 +66,7 @@ local config = {
 }
 
 -- debug-logs some variables.
-local function debug(t: { { name: string, value: any } })
+local function log(t: { { name: string, value: any } })
 	if not config.debug then
 		return
 	end
@@ -241,7 +241,7 @@ end
 ---@param broadcast boolean
 ---@param target Player
 ---@return TextChatMessage|nil
-local function Chat(message: string, broadcast: boolean, target: Player, options: chatOptions)
+local function Chat(message: string, broadcast: boolean, target: Player)
 	if broadcast == nil or type(broadcast) ~= "boolean" then
 		broadcast = true
 	end
@@ -275,245 +275,102 @@ type command = {
 
 type commands = { [string]: command }
 
-local commands: commands = {
-	autoconverttesting = {
-		description = "For testing auto-converting",
-		options = {
-			autoConvert = true,
-			extraRawArgsParam = true,
-		},
-		callback = function(_, args, rawArgs)
-			local chatString = "Args: "
-			for i, arg in args do
-				chatString ..= tostring(arg) .. " / raw: " .. rawArgs[i] .. " (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
-			end
-			Chat(chatString)
-		end,
-	},
-	test = {
-		description = "A testing command.",
-		callback = function(_, args)
-			Chat("Args: " .. table.concat(args, ", "))
-		end,
-	},
-	re = {
-		description = "resets the bot's character.",
-		callback = function()
-			if not Character then return end
-			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-			if not Humanoid then return end
-			Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
-		end
-	},
-	vclip = {
-		description = "vertically clips the bot's HumanoidRootPart position up.",
-		callback = function(user, args)
-			if not args[1] then
-				Chat("@" .. user.DisplayName .. " I can't VClip, as you haven't provided the 1st required argument.")
-				return
-			end
+-- for commands, look in Commands/DefaultCommands.lua, the commands are registered there.
+-- also: the commands get registered at runtime.
+local commands: commands = {}
 
-			if not tonumber(args[1]) then
-				Chat(
-					"@"
-						.. user.DisplayName
-						.. " I can't VClip,"
-						.. "as you haven't provided a valid number"
-						.. "for the 1st required argument (e.x. 1)."
-				)
-				return
-			end
-			if tonumber(args[1]) >= math.huge then
-				Chat("@" .. user.DisplayName .. " No")
-				return
-			end
-			local direction = if tonumber(args[1]) <= -1 then "down" else "up"
-
-			Character:PivotTo(Character:GetPivot() + Vector3.new(0, tonumber(args[1]), 0))
-			Chat("VClipped " .. direction .. "!")
-		end,
-	},
-	shiftlock = {
-		description = "Toggles shift-lock (or set the state manually).",
-		options = {
-			autoConvert = true,
-		},
-		callback = function(_, args)
-			local state = args[1] and Enum.MouseBehavior.Default
-				or UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter
-
-			UserInputService.MouseBehavior = state and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
-
-			Chat("Toggled shift-lock " .. (if state then "on" else "off") .. "!")
-		end,
-	},
-	-- say = {
-	-- 	description = "Obvious.",
-	-- 	callback = function(_, args)
-	-- 		if not args[1] then
-	-- 			Chat("You didn't provide the first argument (which is what I will say)")
-	-- 		end
-	-- 		local str = args[1]
-	-- 		table.remove(args, 1)
-	-- 		task.wait()
-	-- 		for _, part in args do
-	-- 			str ..= " " .. part
-	-- 		end
-	-- 		Chat(str)
-	-- 	end,
-	-- },
-	help = {
-		description = "Lists all commands, " .. "descriptions, and examples (if provided)",
-	},
-	spin = {
-		description = "spin around! (speed defaults to 20)",
-		callback = function(_, args)
-			local speed = tonumber(args[1]) or 20
-			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-			local RootPart = Humanoid.RootPart
-
-			if speed == 0 and RootPart:FindFirstChild("Spinning") then
-				RootPart:FindFirstChild("Spinning"):Destroy()
-				return
-			end
-			if speed >= 800 then
-				return Chat("No.")
-			end
-			if RootPart:FindFirstChild("Spinning") then
-				RootPart.Spinning.AngularVelocity = Vector3.new(0, speed, 0)
-				return
-			end
-			local Spin = Instance.new("BodyAngularVelocity")
-			Spin.Name = "Spinning"
-			Spin.Parent = RootPart
-			Spin.MaxTorque = Vector3.new(0, math.huge, 0)
-			Spin.AngularVelocity = Vector3.new(0, speed, 0)
-		end,
-	},
-	hipheight = {
-		description = "Set the bot's hip height!",
-		options = {
-			autoConvert = true,
-		},
-		callback = function(_, args)
-			if not args[1] then
-				Chat("I need 1 argument, but I got none.")
-				return
-			end
-
-			Character:FindFirstChildOfClass("Humanoid").HipHeight = args[1]
-		end,
-	},
-	-- fakesay = {
-	-- 	description = "uhh yes (args (2): name and msg)",
-	-- 	callback = function(_, args)
-	-- 		local a = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ "
-	-- 		return Chat(a .. ((args[1] or "System") .. ": ") .. (args[2] or "Shutting down in 69 seconds.."))
-	-- 	end,
-	-- },
-	figlet = {
-		description = "Turns some normal ASCII text " .. "into a message that uses symbols.",
-		callback = function(user, args)
-			if not args[1] then
-				Chat("@" .. user.Name .. " You didn't provide any arguments." .. "Please try again.")
-				return
-			end
-			local messages = figlet(args[1])
-			for _, msg in pairs(messages) do
-				Chat(msg)
-			end
-		end,
-	},
-	speed = {
-		description = "Sets the bot's speed. (1 arg required)",
-	},
-	cmds = {
-		description = "stripped-down help command.",
-	},
-	follow = {
-		description = "follows a player. (1 arg required, if not specified, it will stop following)",
-		followingPlayer = false,
-		target = nil,
-	},
-	getlogs = {
-		description = "Lists all logged messages.",
-		callback = function()
-			local chatLogs: { ChatLog } = table.clone(logs.Game.Chat)
-			Chat("Logs:")
-			task.wait()
-			for _, log in chatLogs do
-				Chat("_\tMessage: " .. log.Message)
-				task.wait(3)
-				Chat("_\tAuthor: " .. log.Author.DisplayName)
-				task.wait(4)
-				Chat("_\tTime: " .. log.timeStamp:FormatUniversalTime("MMM D H:MM:SS", "en-us"))
-				task.wait(3)
-			end
-		end,
-	},
+local folders = {
+	"Betabot",
+	"Betabot/Commands",
 }
 
-function commands.follow.callback(user, args)
-	if not args[1] and not commands.follow.followingPlayer then
-		return Chat("No player specified", true)
+for _, folder in folders do
+	if not isfolder(folder) then
+		makefolder(folder)
 	end
-	-- GetPlayerByName(name: string, caseInsensitive: boolean?, requestingPlayer: Player?): Player?
-	local target = GetPlayerByName(args[1], true, user)
-
-	if not target then
-		return Chat(
-			"Player you specified does not appear to exist, this "
-				.. 'Only supports (actual) names ("me is a exception, it\'ll refer to you.")',
-			true
-		)
-	end
-	print(target)
-	local targetCharacter = target.Character or target.CharacterAdded:Wait()
-	print(targetCharacter)
-
-	Character:FindFirstChildOfClass("Humanoid"):MoveTo(targetCharacter:GetPivot().Position)
-end
-local helping = false
-function commands.help.callback()
-	if helping then
-		return Chat(":skull:")
-	end
-	Chat("Commands:")
-	helping = true
-	for name, cmd in commands do
-		Chat(name .. ":")
-		task.wait()
-		Chat("_     - " .. (if cmd.description then cmd.description else "No description provided"))
-		task.wait(2.4)
-	end
-	helping = false
 end
 
-function commands.cmds.callback()
-	Chat("Commands:")
-	task.wait(2.4)
-	local names = {}
-	for name, _ in commands do
-		table.insert(names, name)
+---@type string[]
+local files = {
+	"Commands/DefaultCommands.lua",
+}
+
+local base = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/"
+	.. HttpService:UrlEncode("Universal Scripts")
+	.. "/Bot/"
+
+---@param path string
+---@return string
+local function githubRequest(path)
+	if not isfile("Betabot/" .. path) then
+		writefile("Betabot/" .. path, game:HttpGet(base .. path))
+		return readfile(path)
 	end
-	Chat(table.concat(names, ", "))
+	return readfile(path)
 end
 
-local oldSpeed = Character:FindFirstChildOfClass("Humanoid").WalkSpeed
+---@param file string
+for _, file in files do
+	if not isfile("Betabot/" .. file) then
+		writefile(file, githubRequest(file))
+	end
+end
 
-function commands.speed.callback(_, args)
-	if not args[1] then
-		return Chat('Argument #1 not provided for command "speed".')
+---Creates a comment, and returns the command that was created.
+local function createCommand(name: string, command: command): command
+	if type(name) ~= "string" then
+		error('Argument #1: expected a string for name, got "' .. tostring(name) .. '".')
 	end
-	if not tonumber(args[1]) then
-		return Chat("Argument #1 seems to not be a number.")
+	if commands[name] then
+		warn("Command ".. '"', name .. '"' .. "was created before this call of createCommand, overriding.")
 	end
+	commands[name] = command
 
-	if tonumber(args[1]) <= 0 then
-		Character:FindFirstChildOfClass("Humanoid").WalkSpeed = oldSpeed
+	return command
+end
+
+-- exported variables/symbols/etc
+local exports = {
+	createCommand,
+	Chat,
+	GetPlayerByName,
+	req,
+	commands = commands,
+	logs = logs,
+	Character = Character
+}
+
+-- local info = debug.getinfo
+---@param file string
+local function runCommandScript(file)
+	local f, err = loadstring(readfile(file), "[Betabot Command] " .. file)
+	if not f then
+		warn("[Betabot] file " .. file .. " loadstring error:", err)
+		return
 	end
-	oldSpeed = Character:FindFirstChildOfClass("Humanoid").WalkSpeed
-	Character:FindFirstChildOfClass("Humanoid").WalkSpeed = tonumber(args[1])
+	for name, export in exports do
+		if type(export) == "function" then
+			getgenv()[debug.info(export, "n")] = export
+		else
+			getgenv()[name] = export
+		end
+	end
+	f()
+	for name, export in exports do
+		if type(export) == "function" then
+			getgenv()[debug.info(export, "n")] = export
+		else
+			getgenv()[name] = export
+		end
+	end
+end
+
+if #(listfiles("Betabot/Commands")) > 1 then
+	for _, file in listfiles("Betabot/Commands") do
+		runCommandScript(file)
+	end
+else
+	runCommandScript("Betabot/Commands/DefaultCommands.lua")
 end
 
 ---@param msg string
@@ -589,7 +446,7 @@ end
 
 local function registerChattedEventLCS()
 	connections.Chat = Players.PlayerChatted:Connect(function(_, player, message, targetPlayer)
-		debug({ { name = "msg", value = message }, { name = "recip", value = targetPlayer or "nil" } })
+		log({ { name = "msg", value = message }, { name = "recip", value = targetPlayer or "nil" } })
 		if message:sub(1, 1) ~= config.prefix then
 			table.insert(logs.Game.Chat, {
 				Author = player,
