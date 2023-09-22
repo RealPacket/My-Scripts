@@ -3,13 +3,12 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local TextChatService = game:GetService("TextChatService")
-local UserInputService = game:GetService("UserInputService")
 -- if the chat system version isn't Enum.ChatVersion.TextChatService,
 -- true, else, false
 local isLegacy = TextChatService.ChatVersion == Enum.ChatVersion.LegacyChatService
 local ChatVersion = TextChatService.ChatVersion
+local runFn = task.spawn
 if getgenv().__destroy_bot then
 	getgenv().__destroy_bot(true)
 	task.wait()
@@ -35,8 +34,9 @@ local function escapeHTML(str)
 	return str
 end
 
----@param str string The string to escape
----@return string escaped The escaped version of the string.
+---Does the opposite of escapeHTML.
+---@param str string The string to unescape
+---@return string unescaped The unescaped version of the string.
 local function unescapeHTML(str)
 	str = str:gsub("&amp;", "&")
 	str = str:gsub("&lt;", "<")
@@ -58,9 +58,11 @@ local config = {
 	whitelistedEnabled = false,
 	-- formats for certain messages that the bot says.
 	MessageFormats = {
+		---The message that gets sent when the bot script is executed.
 		StartMessage = "[INFO]: Started bot in {MODE} mode! "
 			.. 'Prefix is "{PREFIX}", '
 			.. 'Use "{PREFIX}cmds" for a list of commands!',
+		---The message that gets sent when a player tries to run a command that doesn't exist.
 		UnknownCommandMessage = "Unknown command " .. '"{COMMAND}"! Try using "{PREFIX}cmds" for a list of commands.',
 	},
 }
@@ -181,14 +183,6 @@ local connections: { RBXScriptConnection } = {
 
 local LocalPlayer = Players.LocalPlayer
 
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-
-LocalPlayer.CharacterAdded:Connect(function()
-	RunService.PostSimulation:Wait()
-	task.wait()
-	Character = LocalPlayer.Character
-end)
-
 --[[
     all userIDs of the whitelisted players, can be deleted.
     Don't forget to modify the function
@@ -236,25 +230,49 @@ local function GetPlayerByName(name: string, caseInsensitive: boolean?, requesti
 	error(`No player with the name "{name}" was found.`)
 	return nil
 end
--- send a message in Chat.
+local FloodCheckInfo = {}
+--- I could just rejoin the player but that would crash the client if you're using Fluxus.
+--- (p.s. showerhead can't fix his exploit)
+runFn(function()
+	FloodCheckInfo.MESSAGES_ALLOWED = not isLegacy and 20 or 7
+	FloodCheckInfo.DECAY_TIME_PERIOD = not isLegacy and 20 or 15
+	FloodCheckInfo.floodCheckTable = {}
+
+	---@param tbl table
+	function FloodCheckInfo:EnterTimeIntoLog(tbl)
+		table.insert(tbl, tick() + self.DECAY_TIME_PERIOD)
+	end
+end)
+---TODO: add rate-limit bypass
+---send a message in Chat.
 ---@param message string
 ---@param broadcast boolean
 ---@param target Player
 ---@return TextChatMessage|nil
 local function Chat(message: string, broadcast: boolean, target: Player)
-	if broadcast == nil or type(broadcast) ~= "boolean" then
+	if type(broadcast) ~= "boolean" then
 		broadcast = true
 	end
 	if isLegacy then
 		ChatEvent:FireServer(message, if broadcast then "All" else "To " .. target)
 	else
-		local inputBarConfiguration: ChatInputBarConfiguration = TextChatService.ChatInputBarConfiguration
-		-- return inputBarConfiguration.TargetTextChannel:SendAsync(message)
-		return task.spawn(
-			inputBarConfiguration.TargetTextChannel.SendAsync,
-			inputBarConfiguration.TargetTextChannel,
-			message
-		)
+		---@type ChatInputBarConfiguration
+		local inputBarConfiguration = TextChatService.ChatInputBarConfiguration
+		local msg
+		local now = tick()
+		while #FloodCheckInfo.floodCheckTable > 0 and FloodCheckInfo.floodCheckTable[1] < now do
+			table.remove(FloodCheckInfo.floodCheckTable, 1)
+		end
+		FloodCheckInfo:EnterTimeIntoLog(FloodCheckInfo.floodCheckTable)
+		if #FloodCheckInfo.floodCheckTable < FloodCheckInfo.MESSAGES_ALLOWED then
+			msg = inputBarConfiguration.TargetTextChannel:SendAsync(message)
+			FloodCheckInfo:EnterTimeIntoLog(FloodCheckInfo.floodCheckTable)
+		else
+			local timeDiff = math.ceil(FloodCheckInfo.floodCheckTable[1] - now)
+			task.wait(timeDiff)
+			msg = inputBarConfiguration.TargetTextChannel:SendAsync(msg.Text, msg.Metadata)
+		end
+		return msg
 	end
 end
 type command = {
@@ -298,11 +316,12 @@ local files = {
 local base = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/"
 	.. HttpService:UrlEncode("Universal Scripts")
 	.. "/Bot/"
+local baseFolder = "Betabot/"
 
 ---@param path string
 ---@return string
 local function githubRequest(path)
-	if not isfile("Betabot/" .. path) then
+	if not isfile(baseFolder .. path) then
 		local suc, res
 		suc, res = pcall(function()
 			return game:HttpGet(base .. path, true)
@@ -310,9 +329,9 @@ local function githubRequest(path)
 		if not suc or res == "404: Not Found" then
 			error(res)
 		end
-		writefile("Betabot/" .. path, res)
+		writefile(baseFolder .. path, res)
 	end
-	return readfile("Betabot/" .. path)
+	return readfile(baseFolder .. path)
 end
 
 ---@param file string
@@ -343,7 +362,6 @@ local exports = {
 	req,
 	commands = commands,
 	logs = logs,
-	Character = Character,
 }
 
 -- local info = debug.getinfo
@@ -457,7 +475,7 @@ local function registerChattedEventLCS()
 			table.insert(logs.Game.Chat, {
 				Author = player,
 				Message = message,
-				Recipient = targetPlayer,
+				Channel = targetPlayer,
 				timeStamp = DateTime.now(),
 			})
 			return
@@ -481,7 +499,7 @@ local function registerChattedEventTCS()
 		if msg.Text:sub(1, #escapeHTML(config.prefix)) ~= escapeHTML(config.prefix) then
 			table.insert(logs.Game.Chat, {
 				Author = author,
-				Message = msg.Text,
+				Message = unescapeHTML(msg.Text),
 				Channel = msg.TextChannel,
 				timeStamp = DateTime.now(),
 			})
