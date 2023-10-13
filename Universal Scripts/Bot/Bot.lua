@@ -13,6 +13,277 @@ if getgenv().__destroy_bot then
 	getgenv().__destroy_bot(true)
 	task.wait()
 end
+
+-- [[  Typings. (only exported stuff)  ]] --
+
+type Betabot = {
+	Utils: Utils,
+	API: APIs,
+	Commands: commands,
+	Logs: logs,
+}
+
+type command = {
+	description: string?,
+	options: {
+		autoConvert: boolean?,
+		extraRawArgsParam: boolean?,
+	}?,
+	callback: (
+		---player that ran the command
+		user: Player,
+		---arguments (only strings if options.autoConvert is false)
+		args: { string | number | boolean },
+		---only if options.extraRawArgsParam is set to true
+		rawArgs: { string }?
+	) -> (),
+}
+
+type commands = { [string]: command }
+
+type ChatLog = {
+	Author: Player,
+	Message: string,
+	Recipient: Player,
+	timeStamp: DateTime,
+}
+
+type ConsoleLogs = {
+	Errors: { string },
+	Warnings: { string },
+	Logs: { string },
+}
+
+type GameLogs = {
+	Chat: { ChatLog },
+}
+
+type CommandLog = {
+	args: {},
+	command: command,
+	time: DateTime,
+}
+
+type BotLogs = {
+	Commands: { CommandLog },
+}
+
+type logs = {
+	Console: ConsoleLogs,
+	Game: GameLogs,
+	Bot: BotLogs,
+}
+
+type APIs = {
+	--- An API which allows you to create certain permissions and revoke/grant it from/to players.
+	PermissionsAPI: PermissionsAPI,
+	--- An API which allows you to create new commands.
+	CommandAPI: CommandAPI,
+}
+
+type CommandAPI = {
+	CreateCommand: (name: string, cmd: command) -> command,
+}
+
+type Permission = {
+	--- Gets fired once the permission gets granted to a player.
+	OnGrantedToPlayer: SignalInstance,
+	--- Gets fired once the permission gets revoked from a player.
+	OnRevokedFromPlayer: SignalInstance,
+	--[=[
+		Grants this permission to a player, fires the OnGrantedToPlayer event.
+	]=]
+	GrantToPlayer: (self: Permission, target: Player) -> Player,
+	--[=[
+		Revokes this permission from a player, fires the OnRevokedFromPlayer event.
+	]=]
+	RevokeFromPlayer: (self: Permission, target: Player) -> (),
+	--[=[
+		Returns true if the player specified has been granted this permission.
+	]=]
+	IsGrantedToPlayer: (self: Permission, player: Player) -> boolean,
+}
+
+type PermissionsAPI = {
+	--- Gets fired once a permission is added.
+	PermissionAdded: SignalInstance,
+	--- Gets fired once a permission is about to be removed.
+	PermissionRemoving: SignalInstance,
+	--- Gets a permission with the specified
+	--- If a permission doesn't exist, an error gets thrown.
+	GetPermission: (self: PermissionsAPI, name: string) -> Permission,
+	--- Creates/Adds a permission with the specified
+	--- If the permission specified, an error gets thrown.
+	CreatePermission: (self: PermissionsAPI, name: string) -> Permission,
+	--- A list of permissions
+	Permissions: { [string]: Permission },
+}
+
+--[=[
+   An object that represents a connection that is connected to a signal.
+--]=]
+type Connection = {
+	connected: boolean,
+	target: SignalUtil,
+	Disconnect: (self: Connection) -> (),
+}
+
+type SignalInstance = {
+	--- Connects to this signal and returns the connection object representing this connection.
+	Connect: (self: SignalUtil, callback: (...any) -> ()) -> Connection,
+	--- Fires all connections connected to this signal instance.
+	Fire: (self: SignalUtil, ...any) -> (),
+	--[=[
+        Creates a connection
+	    that immediately calls the callback
+	    and disconnects from the signal as soon as the connection is triggered,
+	    only allowing the callback to be executed once.
+	    Returns the connection object representing the connection.
+    ]=]
+	Once: (self: SignalUtil, callback: (...any) -> ()) -> Connection,
+	-- Yields the current thread until the signal is fired, and returns the arguments that were fired.
+	Wait: (self: SignalUtil) -> ...any,
+}
+
+type SignalUtil = {
+	new: () -> SignalInstance,
+	constructor: (self: SignalInstance) -> (),
+}
+
+type Utils = {
+	GetPlayerByName: (name: string, caseInsensitive: boolean?, requestingPlayer: Player?) -> Player?,
+	Chat: (message: string, broadcast: boolean, target: Player) -> TextChatMessage?,
+	Signal: SignalUtil,
+}
+
+-- [[  End Typings.  ]] --
+
+-- [[  Utils.  ]] --
+
+-- Simple signal util, made because roblox bindable events do the monkey with tables
+-- (they re-create tables when passing into the callback :skull:)
+
+--[=[
+   An object that represents a connection that is connected to a signal.
+--]=]
+local Connection
+do
+	Connection = setmetatable({}, {
+		__tostring = function()
+			return "Connection"
+		end,
+	})
+	Connection.__index = Connection
+	function Connection.new(...)
+		local self = setmetatable({}, Connection)
+		return self:constructor(...) or self
+	end
+	function Connection:constructor(target, callback)
+		self.connected = true
+		self.callback = callback
+		self.target = target
+	end
+	--[=[
+        Sets connected to false and
+	    disconnects this connection from the signal it was connected from.
+    ]=]
+	function Connection:Disconnect()
+		self.connected = false
+		local connIndex = table.find(self.target.conns, self)
+		if not connIndex then
+			error("Connection index seems to be invalid. (" .. tostring(connIndex) .. ")")
+		end
+		table.remove(self.target.conns, connIndex)
+	end
+end
+
+local Signal
+do
+	Signal = setmetatable({}, {
+		__tostring = function()
+			return "Signal"
+		end,
+	})
+	Signal.__index = Signal
+	function Signal.new(...)
+		local self = setmetatable({}, Signal)
+		return self:constructor(...) or self
+	end
+	function Signal:constructor()
+		self.conns = {}
+	end
+	--- Connects to this signal and returns the connection object representing this connection.
+	function Signal:Connect(callback)
+		local conn = Connection.new(self, callback)
+		table.insert(self.conns, conn)
+		return conn
+	end
+	--- Fires all connections connected to this signal instance.
+	function Signal:Fire(...)
+		local args = { ... }
+		for _, conn in self.conns do
+			conn.callback(unpack(args))
+		end
+	end
+	-- Yields the current thread until the signal is fired, and returns the arguments that were fired.
+	function Signal:Wait()
+		local waitingCoroutine = coroutine.running()
+		local cn
+		cn = self:Connect(function(...)
+			cn:Disconnect()
+			task.spawn(waitingCoroutine, ...)
+		end)
+		return coroutine.yield()
+	end
+	--[=[
+        Creates a connection
+	    that immediately calls the callback
+	    and disconnects from the signal as soon as the connection is triggered,
+	    only allowing the callback to be executed once.
+	    Returns the connection object representing the connection.
+    ]=]
+	function Signal:Once(callback)
+		local conn
+		conn = self:Connect(function(...)
+			local args = { ... }
+			callback(unpack(args))
+			conn:Disconnect()
+		end)
+		return conn
+	end
+end
+
+-- [[  End Utils.  ]] --
+
+-- [[  Initialize Betabot global, APIs, Utils, and other things. (PART 1)  ]] --
+
+local Betabot: Betabot = {}
+Betabot.API = {
+	CommandAPI = {},
+	PermissionsAPI = { Permissions = {}, PermissionAdded = Signal.new(), PermissionRemoving = Signal.new() },
+}
+Betabot.Commands = {}
+Betabot.Utils = {
+	Chat = function() end,
+	GetPlayerByName = function() end,
+	Signal = Signal,
+}
+Betabot.Logs = {
+	-- yes
+	Console = {
+		Errors = {},
+		Warnings = {},
+		Logs = {},
+	},
+	Game = {
+		Chat = {},
+	},
+	Bot = {
+		Commands = {},
+	},
+}
+Betabot.Utils.Chat = function() end
+
 local ChatEvent: RemoteEvent?
 if isLegacy then
 	local ChatEvents: Folder? = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
@@ -105,55 +376,6 @@ local function format(str, argsTable)
 	return str
 end
 
-type ChatLog = {
-	Author: Player,
-	Message: string,
-	Recipient: Player,
-	timeStamp: DateTime,
-}
-
-type ConsoleLogs = {
-	Errors: { string },
-	Warnings: { string },
-	Logs: { string },
-}
-
-type GameLogs = {
-	Chat: { ChatLog },
-}
-
-type CommandLog = {
-	args: {},
-	command: command,
-	time: DateTime,
-}
-
-type BotLogs = {
-	Commands: { CommandLog },
-}
-
-type logs = {
-	Console: ConsoleLogs,
-	Game: GameLogs,
-	Bot: BotLogs,
-}
-
--- general logs.
-local logs: logs = {
-	-- yes
-	Console = {
-		Errors = {},
-		Warnings = {},
-		Logs = {},
-	},
-	Game = {
-		Chat = {},
-	},
-	Bot = {
-		Commands = {},
-	},
-}
-
 local function req(opt)
 	local fn = if Fluxus then Fluxus.request elseif request then request elseif syn then syn.request else nil
 	if fn then
@@ -208,34 +430,76 @@ local function canPlayerUseCommand(player: Player, command: command)
 	return true
 end
 
-local function GetPlayerByName(name: string, caseInsensitive: boolean?, requestingPlayer: Player?): Player?
-	if not caseInsensitive then
-		caseInsensitive = true
-	end
-	if requestingPlayer and name == "me" then
-		return requestingPlayer
-	end
-	for _, player in Players:GetPlayers() do
-		if
-			(caseInsensitive and player.Name:lower() == name:lower()) or (not caseInsensitive and player.Name == name)
-		then
-			return player
-		elseif
-			(caseInsensitive and player.DisplayName:lower() == name:lower())
-			or (not caseInsensitive and player.DisplayName == name)
-		then
-			return player
+runFn(function()
+	type info = {
+		-- selector: string,
+		args: { string },
+		flags: { [string]: boolean },
+		requesting: Player?,
+	}
+	type basicSelectorHandler = (info) -> Player?
+	type advancedSelectorHandler = {
+		callback: basicSelectorHandler,
+		aliases: { string }?,
+		getFlags: (selector: string) -> { [string]: boolean },
+	}
+	type selectorHandler = advancedSelectorHandler | basicSelectorHandler
+	type selectorHandlers = { [string]: selectorHandler }
+	local selectorHandlers: selectorHandlers = {
+		self = {
+			callback = function(info)
+				return info.requesting
+			end,
+			aliases = { "s", "me" },
+		},
+		display = {
+			callback = function(info)
+				for _, player in Players:GetPlayers() do
+					if player.DisplayName == info.args[1] then
+						return player
+					end
+				end
+			end,
+			aliases = { "displayname" },
+		},
+		name = {
+			callback = function(info) end,
+		},
+		id = {},
+	}
+	local function GetPlayerBySelector(name: string, caseInsensitive: boolean?, requestingPlayer: Player?): Player?
+		if not caseInsensitive then
+			caseInsensitive = true
 		end
+		if requestingPlayer and name == "me" then
+			return requestingPlayer
+		end
+		for _, player in Players:GetPlayers() do
+			if
+				(caseInsensitive and player.Name:lower() == name:lower())
+				or (not caseInsensitive and player.Name == name)
+			then
+				return player
+			elseif
+				(caseInsensitive and player.DisplayName:lower() == name:lower())
+				or (not caseInsensitive and player.DisplayName == name)
+			then
+				return player
+			end
+		end
+		error(`No player with the name "{name}" was found.`)
+		return nil
 	end
-	error(`No player with the name "{name}" was found.`)
-	return nil
-end
+
+	Betabot.Utils.GetPlayerByName = GetPlayerBySelector
+end)
+
 local FloodCheckInfo = {}
 --- I could just rejoin the player but that would crash the client if you're using Fluxus.
 --- (p.s. showerhead can't fix his exploit)
 runFn(function()
 	FloodCheckInfo.MESSAGES_ALLOWED = not isLegacy and 20 or 7
-	FloodCheckInfo.DECAY_TIME_PERIOD = not isLegacy and 20 or 15
+	FloodCheckInfo.DECAY_TIME_PERIOD = not isLegacy and 30 or 15
 	FloodCheckInfo.floodCheckTable = {}
 
 	---@param tbl table
@@ -243,7 +507,6 @@ runFn(function()
 		table.insert(tbl, tick() + self.DECAY_TIME_PERIOD)
 	end
 end)
----TODO: add rate-limit bypass
 ---send a message in Chat.
 ---@param message string
 ---@param broadcast boolean
@@ -264,38 +527,19 @@ local function Chat(message: string, broadcast: boolean, target: Player)
 			table.remove(FloodCheckInfo.floodCheckTable, 1)
 		end
 		FloodCheckInfo:EnterTimeIntoLog(FloodCheckInfo.floodCheckTable)
-		if #FloodCheckInfo.floodCheckTable < FloodCheckInfo.MESSAGES_ALLOWED then
+		if #FloodCheckInfo.floodCheckTable < (FloodCheckInfo.MESSAGES_ALLOWED - 1) then
 			msg = inputBarConfiguration.TargetTextChannel:SendAsync(message)
 			FloodCheckInfo:EnterTimeIntoLog(FloodCheckInfo.floodCheckTable)
 		else
 			local timeDiff = math.ceil(FloodCheckInfo.floodCheckTable[1] - now)
 			task.wait(timeDiff)
-			msg = inputBarConfiguration.TargetTextChannel:SendAsync(msg.Text, msg.Metadata)
+			msg = inputBarConfiguration.TargetTextChannel:SendAsync(message)
 		end
 		return msg
 	end
 end
-type command = {
-	description: string?,
-	options: {
-		autoConvert: boolean?,
-		extraRawArgsParam: boolean?,
-	}?,
-	callback: (
-		---player that ran the command
-		user: Player,
-		---arguments (only strings if options.autoConvert is false)
-		args: { string | number | boolean },
-		---only if options.extraRawArgsParam is set to true
-		rawArgs: { string }?
-	) -> (),
-}
 
-type commands = { [string]: command }
-
--- for commands, look in Commands/DefaultCommands.lua, the commands are registered there.
--- also: the commands get registered at runtime.
-local commands: commands = {}
+Betabot.Utils.Chat = Chat
 
 local folders = {
 	"Betabot",
@@ -346,25 +590,103 @@ local function createCommand(name: string, command: command): command
 	if type(name) ~= "string" then
 		error('Argument #1: expected a string for name, got "' .. tostring(name) .. '".')
 	end
-	if commands[name] then
+	if Betabot.Commands[name] then
 		warn("Command " .. '"', name .. '"' .. "was created before this call of createCommand, overriding.")
 	end
-	commands[name] = command
+	Betabot.Commands[name] = command
 
 	return command
 end
 
--- exported variables/symbols/etc
-local exports = {
-	createCommand,
-	Chat,
-	GetPlayerByName,
-	req,
-	commands = commands,
-	logs = logs,
-}
+Betabot.API.CommandAPI.CreateCommand = createCommand
+do
+	local Permission: Permission
+	do
+		Permission = setmetatable({}, {
+			__tostring = function()
+				return "Permission"
+			end,
+		})
+		Permission.__index = Permission
+		function Permission.new(...)
+			local self = setmetatable({}, Permission)
+			return self:constructor(...) or self
+		end
+		---@param name string
+		function Permission:constructor(name)
+			self.name = name
+			self.OnGrantedToPlayer = Signal.new()
+			self.OnRevokedFromPlayer = Signal.new()
+			self.grantedPlayers = {}
+		end
+		---@param target Player
+		function Permission:GrantToPlayer(target)
+			if table.find(self.grantedPlayers, target) ~= nil then
+				error(target.DisplayName .. (" has been granted " .. (self.name .. " already!")))
+			end
+			self.OnGrantedToPlayer:Fire(target)
+			table.insert(self.grantedPlayers, target)
+			return target
+		end
+		---@param target Player
+		function Permission:RevokeFromPlayer(target)
+			local index = table.find(self.grantedPlayers, target)
+			if not index then
+				error(
+					('Player "%s" ' .. "wasn't granted permissions for permission %s."):format(
+						target.DisplayName,
+						self.name
+					)
+				)
+			end
+			self.OnRevokedFromPlayer:Fire(target)
+			table.remove(self.grantedPlayers, index)
+		end
+		---@param player Player
+		function Permission:IsGrantedToPlayer(player)
+			return table.find(self.grantedPlayers, player) ~= nil
+		end
+	end
+	---@param name string
+	function Betabot.API.PermissionsAPI:CreatePermission(name): Permission
+		if self.Permissions[name] then
+			warn(('Permission "%s" existed before this call of CreatePermission. Overriding'):format(name))
+		end
+		local permission = Permission.new(name)
+		self.PermissionAdded:Fire(name, permission)
+		self.Permissions[name] = permission
+		return self.Permissions[name]
+	end
+	---@param name string
+	function Betabot.API.PermissionsAPI:GetPermission(name): Permission
+		local permission = self.Permissions[name]
+		if not permission then
+			error(('No permission named "%s" was found.'):format(name))
+		end
+		return permission
+	end
+	---@param name string
+	function Betabot.API.PermissionsAPI:RemovePermission(name): Permission
+		local permission = self.Permissions[name]
+		if not permission then
+			error(('No permission named "%s" was found.'):format(name))
+		end
+		self.PermissionRemoving:Fire(permission)
+		permission[name] = nil
+		return permission
+	end
+end
 
--- local info = debug.getinfo
+-- exported variables/symbols/etc
+-- local exports = {
+-- 	createCommand,
+-- 	Chat,
+-- 	GetPlayerByName,
+-- 	req,
+-- 	commands = commands,
+-- 	logs = logs,
+-- }
+
 ---@param file string
 local function runCommandScript(file)
 	local f, err = loadstring(readfile(file), "[Betabot Command] " .. file)
@@ -372,21 +694,8 @@ local function runCommandScript(file)
 		warn("[Betabot] file " .. file .. " loadstring error:", err)
 		return
 	end
-	for name, export in exports do
-		if type(export) == "function" then
-			getgenv()[debug.info(export, "n")] = export
-		else
-			getgenv()[name] = export
-		end
-	end
+	getgenv().Betabot = Betabot
 	f()
-	for name, export in exports do
-		if type(export) == "function" then
-			getgenv()[debug.info(export, "n")] = export
-		else
-			getgenv()[name] = export
-		end
-	end
 end
 
 if #(listfiles("Betabot/Commands")) > 1 then
@@ -396,6 +705,8 @@ if #(listfiles("Betabot/Commands")) > 1 then
 else
 	runCommandScript("Betabot/Commands/DefaultCommands.lua")
 end
+
+-- [[ message handler ]] --
 
 ---@param msg string
 ---@param player Player
@@ -421,14 +732,14 @@ local function handler(msg: string, player: Player)
 		end
 	end
 	-- determines if the command is valid
-	local commandExists = commands[commandName] ~= nil
+	local commandExists = Betabot.Commands[commandName] ~= nil
 	if not commandExists then
 		return Chat(format(config.MessageFormats.UnknownCommandMessage, {
 			PREFIX = config.prefix,
 			COMMAND = commandName,
 		}))
 	end
-	local command = commands[commandName]
+	local command = Betabot.Commands[commandName]
 	local rawArgs = table.clone(args)
 	if command.options and command.options.autoConvert then
 		-- auto-convert the arguments.
@@ -456,7 +767,7 @@ local function handler(msg: string, player: Player)
 		end
 	end
 	-- the command's callback (gets ran when a player triggers it).
-	local callback = commands[commandName].callback
+	local callback = Betabot.Commands[commandName].callback
 	if not callback then
 		return Chat('Command "' .. commandName .. '"' .. " doesn't seem to have a callback!")
 	end
@@ -468,11 +779,21 @@ local function handler(msg: string, player: Player)
 	task.spawn(callback, unpack(params))
 end
 
+
+
+-- [[ END message handler ]] --
+
+
+
+-- [[ Event Register Functions (for compatibility for multiple chat versions.) ]] --
+
+
+
 local function registerChattedEventLCS()
 	connections.Chat = Players.PlayerChatted:Connect(function(_, player, message, targetPlayer)
 		log({ { name = "msg", value = message }, { name = "recip", value = targetPlayer or "nil" } })
 		if message:sub(1, 1) ~= config.prefix then
-			table.insert(logs.Game.Chat, {
+			table.insert(Betabot.Logs.Game.Chat, {
 				Author = player,
 				Message = message,
 				Channel = targetPlayer,
@@ -497,7 +818,7 @@ local function registerChattedEventTCS()
 			return
 		end
 		if msg.Text:sub(1, #escapeHTML(config.prefix)) ~= escapeHTML(config.prefix) then
-			table.insert(logs.Game.Chat, {
+			table.insert(Betabot.Logs.Game.Chat, {
 				Author = author,
 				Message = unescapeHTML(msg.Text),
 				Channel = msg.TextChannel,
@@ -515,6 +836,16 @@ end
 
 registerChattedEvent()
 
+
+
+-- [[ END Event Register Functions. ]] --
+
+
+
+-- [[ Destroy bot function ]] --
+
+
+
 getgenv().__destroy_bot = function(isReboot)
 	getgenv().__destroy_bot = nil
 	for _, connection in connections do
@@ -526,6 +857,16 @@ getgenv().__destroy_bot = function(isReboot)
 	end
 end
 
+
+
+-- [[  END Destroy bot function  ]] --
+
+
+
+-- [[  Start Message  ]] --
+
+
+
 Chat(
 	format(config.MessageFormats.StartMessage, {
 		MODE = ChatVersion.Name,
@@ -533,3 +874,5 @@ Chat(
 	}),
 	true
 )
+
+-- [[  END Start Message  ]] --
