@@ -9,14 +9,14 @@ end)
 
 local runFn = task.spawn
 
-createCommand("test", {
+Betabot.API.CommandAPI.CreateCommand("test", {
 	description = "A testing command.",
 	callback = function(_, args)
-		Chat("Args: " .. table.concat(args, ", "))
+		Betabot.Utils.Chat("Args: " .. table.concat(args, ", "))
 	end,
 })
 
-createCommand("autoconverttesting", {
+Betabot.API.CommandAPI.CreateCommand("autoconverttesting", {
 	description = "For testing auto-converting",
 	options = {
 		autoConvert = true,
@@ -27,11 +27,11 @@ createCommand("autoconverttesting", {
 		for i, arg in args do
 			chatString ..= tostring(arg) .. " / raw: " .. rawArgs[i] .. " (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
 		end
-		Chat(chatString)
+		Betabot.Utils.Chat(chatString)
 	end,
 })
 
-createCommand("re", {
+Betabot.API.CommandAPI.CreateCommand("re", {
 	description = "resets the bot's character.",
 	callback = function()
 		if not Character then
@@ -44,31 +44,34 @@ createCommand("re", {
 		Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
 	end,
 })
-createCommand("vclip", {
+
+Betabot.API.CommandAPI.CreateCommand("vclip", {
 	description = "vertically clips the bot's HumanoidRootPart position up.",
 	options = {
 		autoConvert = true,
 	},
 	callback = function(user, args)
 		if type(args[1]) ~= "number" then
-			Chat("@" .. user.DisplayName .. " I can't VClip, as you haven't provided the 1st required argument.")
+			Betabot.Utils.Chat(
+				"@" .. user.DisplayName .. " I can't VClip, as you haven't provided the 1st required argument."
+			)
 			return
 		end
 
 		if args[1] >= 4e5 then
-			Chat("Nah.")
+			Betabot.Utils.Chat("VClipping up more than 4e5 studs will lag me back down, so I will not.")
 			return
 		end
 		if args[1] <= -513 then
-			Chat("VClipping down more than -513 will lag me back up, so I will not.")
+			Betabot.Utils.Chat("VClipping down more than 513 studs will lag me back up, so I will not.")
 			return
 		end
 		local direction = if args[1] <= -1 then "down" else "up"
 		Character:PivotTo(Character:GetPivot() + Vector3.new(0, args[1], 0))
-		Chat("VClipped " .. direction .. "!")
+		Betabot.Utils.Chat("VClipped " .. direction .. "!")
 	end,
 })
-createCommand("shiftlock", {
+Betabot.API.CommandAPI.CreateCommand("shiftlock", {
 	description = "Toggles shift-lock (or set the state manually).",
 	options = {
 		autoConvert = true,
@@ -79,93 +82,104 @@ createCommand("shiftlock", {
 
 		UserInputService.MouseBehavior = state and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
 
-		Chat("Toggled shift-lock " .. (if state then "on" else "off") .. "!")
+		Betabot.Utils.Chat("Toggled shift-lock " .. (if state then "on" else "off") .. "!")
 	end,
 })
-createCommand("spin", {
+Betabot.API.CommandAPI.CreateCommand("spin", {
 	description = "spin around! (speed defaults to 20)",
+	options = {
+		autoConvert = true,
+	},
 	callback = function(_, args)
 		local speed = tonumber(args[1]) or 20
 		local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-		local RootPart = Humanoid.RootPart
-
+		local RootPart = Humanoid.RootPart -- humanoid root part is gay; change my mind
 		if speed == 0 and RootPart:FindFirstChild("Spinning") then
 			RootPart:FindFirstChild("Spinning"):Destroy()
+			Humanoid.AutoRotate = true
 			return
 		end
 		if speed >= 800 then
-			return Chat("No.")
+			return Betabot.Utils.Chat("No.")
 		end
 		if RootPart:FindFirstChild("Spinning") then
 			RootPart.Spinning.AngularVelocity = Vector3.new(0, speed, 0)
 			return
 		end
-		local Spin = Instance.new("BodyAngularVelocity")
+		Humanoid.AutoRotate = false
+		local Spin = Instance.new("BodyAngularVelocity", RootPart)
 		Spin.Name = "Spinning"
-		Spin.Parent = RootPart
 		Spin.MaxTorque = Vector3.new(0, math.huge, 0)
 		Spin.AngularVelocity = Vector3.new(0, speed, 0)
 	end,
 })
-createCommand("hipheight", {
+Betabot.API.CommandAPI.CreateCommand("hipheight", {
 	description = "Set the bot's hip height!",
+	options = {
+		autoConvert = true,
+	},
 	callback = function(_, args)
 		if not args[1] then
-			Chat("I need 1 argument, but I got none.")
+			Betabot.Utils.Chat("I need 1 argument, but I got none.")
 			return
 		end
-		if not tonumber(args[1]) then
-			Chat("I got 1 argument, but it's not a valid number.")
+		if type(args[1]) ~= "number" then
+			Betabot.Utils.Chat("I got 1 argument, but it's not a number.")
 			return
+		end
+		if args[1] >= 9e9 then
+			return Betabot.Utils.Chat("no")
 		end
 
-		Character:FindFirstChildOfClass("Humanoid").HipHeight = tonumber(args[1])
+		Character:FindFirstChildOfClass("Humanoid").HipHeight = args[1]
 	end,
 })
 
-createCommand("getlogs", {
+Betabot.API.CommandAPI.CreateCommand("getlogs", {
 	description = "Lists all logged messages.",
 	callback = function()
-		local chatLogs: { ChatLog } = table.clone(logs.Game.Chat)
-		Chat("Logs:")
+		local chatLogs: { ChatLog } = table.clone(Betabot.Logs.Game.Chat)
+		Betabot.Utils.Chat("Logs:")
 		task.wait()
 		for _, chatLog in chatLogs do
 			-- legacy chat service is gay so I have to use space instead of tabs
-			Chat("_     Message: " .. chatLog.Message)
+			Betabot.Utils.Chat("_     Message: " .. chatLog.Message)
 			task.wait(1)
-			Chat("_     Author: " .. chatLog.Author.DisplayName)
+			Betabot.Utils.Chat("_     Author: " .. chatLog.Author.DisplayName)
 			task.wait()
-			Chat("_     Time: " .. chatLog.timeStamp:FormatUniversalTime("MMM D H:MM:SS", "en-us"))
+			Betabot.Utils.Chat("_     Time: " .. chatLog.timeStamp:FormatUniversalTime("MMM D H:MM:SS", "en-us"))
 			task.wait(3)
 		end
 	end,
 })
 
 runFn(function()
-	local help = createCommand("help", {
+	local help = Betabot.API.CommandAPI.CreateCommand("help", {
 		description = "Lists all commands, " .. "descriptions, and examples (if provided)",
 	})
 	local helping = false
 	function help.callback(_, args)
 		if helping then
-			return Chat(":skull:")
+			return
 		end
 		helping = true
 		if not args[1] then
-			Chat("Commands:")
-			for name, cmd in commands do
-				Chat(name .. ":")
+			Betabot.Utils.Chat("Commands:")
+			for name, cmd in Betabot.Commands do
+				Betabot.Utils.Chat(name .. ":")
 				task.wait(2.4)
-				Chat("_     - " .. (if cmd.description then cmd.description else "No description provided"))
+				Betabot.Utils.Chat(
+					"_     - " .. (if cmd.description then cmd.description else "No description provided")
+				)
 				task.wait(2.6)
 			end
 		else
-			local command = commands[args[1]]
+			local command = Betabot.Commands[args[1]]
 			if not command then
-				Chat(('Command "%s" ' .. " doesn't exist!"):format(args[1]))
+				Betabot.Utils.Chat(('Command "%s" ' .. " doesn't exist!"):format(args[1]))
 				return
 			end
-			Chat(
+			Betabot.Utils.Chat(
 				("%s: %s"):format(
 					args[1],
 					(if command.description then command.description else "No description provided")
@@ -177,16 +191,16 @@ runFn(function()
 end)
 
 runFn(function()
-	local speed = createCommand("speed", {
+	local speed = Betabot.API.CommandAPI.CreateCommand("speed", {
 		description = "Sets the bot's speed. (1 arg required)",
 	})
 	local oldSpeed = Character:FindFirstChildOfClass("Humanoid").WalkSpeed
 	function speed.callback(_, args)
 		if not args[1] then
-			return Chat('Argument #1 not provided for command "speed".')
+			return Betabot.Utils.Chat('Argument #1 not provided for command "speed".')
 		end
 		if not tonumber(args[1]) then
-			return Chat("Argument #1 seems to not be a number.")
+			return Betabot.Utils.Chat("Argument #1 seems to not be a number.")
 		end
 
 		if tonumber(args[1]) <= 0 then
@@ -197,22 +211,29 @@ runFn(function()
 	end
 end)
 runFn(function()
-	local cmds = createCommand("cmds", {
+	local cmds = Betabot.API.CommandAPI.CreateCommand("cmds", {
 		description = "stripped-down help command.",
 	})
+	local listing = false
 	function cmds.callback()
-		Chat("Commands:")
+		if listing then
+			return
+		end
+		listing = true
+		Betabot.Utils.Chat("Commands:")
 		task.wait(2.4)
 		local names = {}
-		for name, _ in commands do
+		for name, _ in Betabot.Commands do
 			table.insert(names, name)
 		end
-		Chat(table.concat(names, ", "))
+		Betabot.Utils.Chat(table.concat(names, ", "))
+		task.wait(1)
+		listing = false
 	end
 end)
 
 runFn(function()
-	local follow = createCommand("follow", {
+	local follow = Betabot.API.CommandAPI.CreateCommand("follow", {
 		description = "follows a player. (1 arg required, if not specified, it will stop following)",
 		followingPlayer = false,
 		target = nil,
@@ -225,10 +246,10 @@ runFn(function()
 			follow.followingPlayer = false
 			return
 		end
-		local target = GetPlayerByName(args[1], true, user)
+		local target = Betabot.Utils.GetPlayerByName(args[1], true, user)
 
 		if not target then
-			return Chat("Player you specified does not appear to exist.")
+			return Betabot.Utils.Chat("Player you specified does not appear to exist.")
 		end
 
 		local targetCharacter = target.Character or target.CharacterAdded:Wait()
@@ -249,11 +270,13 @@ runFn(function()
 	end
 end)
 
-createCommand("quandaledingle", {
+-- made because funny
+
+Betabot.API.CommandAPI.CreateCommand("quandaledingle", {
 	description = "What's up guys, It's quandale dingle here.",
 	callback = function()
 		task.wait()
-		Chat([[
+		Betabot.Utils.Chat([[
 What's up guys,
 It's quandale dingle here.
 The hive network has
@@ -261,17 +284,22 @@ skidded disepi's Anti Cheat again.
 He now has a full disabler,
 		]])
 		task.wait()
-		Chat(
+		Betabot.Utils.Chat(
 			"I am calling on all Japanese skidders to help develop the best hack called borion to help take down aeolus client."
 		)
 	end,
 })
 
+-- uncomment if you want the say and fakesay command
+-- (commented because someone
+-- could just say something
+-- that is reportable and report you as if you sent it.)
+
 -- createCommand("say", {
 -- 	description = "Obvious.",
 -- 	callback = function(_, args)
 -- 		if not args[1] then
--- 			Chat("You didn't provide the first argument (which is what I will say)")
+-- 			Betabot.Utils.Chat("You didn't provide the first argument (which is what I will say)")
 -- 		end
 -- 		local str = args[1]
 -- 		table.remove(args, 1)
@@ -279,7 +307,7 @@ He now has a full disabler,
 -- 		for _, part in args do
 -- 			str ..= " " .. part
 -- 		end
--- 		Chat(str)
+-- 		Betabot.Utils.Chat(str)
 -- 	end,
 -- })
 
@@ -287,12 +315,14 @@ He now has a full disabler,
 -- 	description = "uhh yes (args (2): name and msg)",
 -- 	callback = function(_, args)
 -- 		local a = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ "
--- 		return Chat(a .. ((args[1] or "System") .. ": ") .. (args[2] or "Shutting down in 69 seconds.."))
+-- 		return Betabot.Utils.Chat(a .. ((args[1] or "System") .. ": ") .. (args[2] or "Shutting down in 69 seconds.."))
 -- 	end,
 -- })
 
+-- main target strafe semi-generated by bing chat
+-- (I modified it some to make it look better & be more customizable)
 runFn(function()
-	local targetStrafe = createCommand("targetstrafe", {
+	local targetStrafe = Betabot.API.CommandAPI.CreateCommand("targetstrafe", {
 		description = "Strafes around the specified player!",
 		strafing = false,
 		target = nil,
@@ -311,8 +341,11 @@ runFn(function()
 		if type(lookAtTarget) ~= "boolean" then
 			lookAtTarget = false
 		end
-		if not strafeDistance and strafeDistance ~= 0 then
+		if type(strafeDistance) ~= "number" then
 			strafeDistance = 7
+		end
+		if not speed then
+			speed = 0
 		end
 		if not targetCharacter then
 			return
@@ -321,7 +354,7 @@ runFn(function()
 		local targetPosition = targetCharacter:GetPivot()
 
 		-- Calculate the position to move to
-		local angle = speed ~= 0 and math.rad(tick() * 360 / speed) or math.rad(tick() * 360) -- Change 5 to adjust the speed of strafing
+		local angle = speed ~= 0 and math.rad(tick() * 360 / speed) or math.rad(tick() * 360)
 		local pos = Vector3.new(
 			targetPosition.X + strafeDistance * math.cos(angle),
 			Character:GetPivot().Y,
@@ -342,20 +375,20 @@ runFn(function()
 			return
 		end
 		if type(args[1]) ~= "string" then
-			return Chat("Invalid 1st argument: expected a string, got " .. type(args[1]))
+			return Betabot.Utils.Chat("Invalid 1st argument: expected a string, got " .. type(args[1]))
 		end
 		if args[2] and type(args[2]) ~= "boolean" then
-			return Chat("Invalid 2nd argument: expected a boolean, got " .. type(args[2]))
+			return Betabot.Utils.Chat("Invalid 2nd argument: expected a boolean, got " .. type(args[2]))
 		end
 		if args[3] and type(args[3]) ~= "number" then
-			return Chat("Invalid 3rd argument: expected a number, got " .. type(args[3]))
+			return Betabot.Utils.Chat("Invalid 3rd argument: expected a number, got " .. type(args[3]))
 		end
 		if args[4] and type(args[4]) ~= "number" then
-			return Chat("Invalid 4th argument: expected a number, got " .. type(args[4]))
+			return Betabot.Utils.Chat("Invalid 4th argument: expected a number, got " .. type(args[4]))
 		end
-		local suc, target = pcall(GetPlayerByName, args[1], true, user)
+		local suc, target = pcall(Betabot.Utils.GetPlayerByName, args[1], true, user)
 		if not suc then
-			return Chat("[ERROR] GetPlayerByName - " .. tostring(target))
+			return Betabot.Utils.Chat("[ERROR] GetPlayerByName - " .. tostring(target))
 		end
 		targetStrafe.target = target
 		targetStrafe.strafing = true
@@ -365,3 +398,16 @@ runFn(function()
 		end
 	end
 end)
+
+Betabot.API.CommandAPI.CreateCommand("floodDetectorBypassTest", {
+	callback = function()
+		local max = 30
+		-- NOTE: the chat function bypasses the flood detector. Not this command
+		for i = 1, max do
+			task.spawn(function()
+				Betabot.Utils.Chat("Message index: " .. tostring(i) .. " out of " .. tostring(max))
+			end)
+			task.wait()
+		end
+	end,
+})
