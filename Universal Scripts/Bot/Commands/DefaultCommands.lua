@@ -15,6 +15,19 @@ Betabot.API.CommandAPI.CreateCommand("test", {
 		Betabot.Utils.Chat("Args: " .. table.concat(args, ", "))
 	end,
 })
+Betabot.API.CommandAPI.CreateCommand("goto", {
+	description = "Teleports to a player.",
+	callback = function(user, args)
+		local suc, target = pcall(Betabot.Utils.GetPlayerByName, args[1], true, user)
+		if not suc then
+			return Betabot.Utils.Chat("[ERROR] GetPlayerByName - " .. tostring(target))
+		end
+		if not target.Character then
+			return Betabot.Utils.Chat("The player you specified doesn't have a character yet.")
+		end
+		Character:PivotTo(target.Character:GetPivot())
+	end,
+})
 
 Betabot.API.CommandAPI.CreateCommand("autoconverttesting", {
 	description = "For testing auto-converting",
@@ -300,13 +313,13 @@ He now has a full disabler,
 -- 	callback = function(_, args)
 -- 		if not args[1] then
 -- 			Betabot.Utils.Chat("You didn't provide the first argument (which is what I will say)")
--- 		end
--- 		local str = args[1]
--- 		table.remove(args, 1)
--- 		task.wait()
--- 		for _, part in args do
--- 			str ..= " " .. part
--- 		end
+-- end
+-- local str = args[1]
+-- table.remove(args, 1)
+-- task.wait()
+-- for _, part in args do
+-- 	str ..= " " .. part
+-- end
 -- 		Betabot.Utils.Chat(str)
 -- 	end,
 -- })
@@ -411,3 +424,138 @@ Betabot.API.CommandAPI.CreateCommand("floodDetectorBypassTest", {
 		end
 	end,
 })
+
+runFn(function()
+	local function characters(str)
+		local chars = {}
+		for i = 1, str:len() do
+			local c = str:sub(i, i)
+			table.insert(chars, c)
+		end
+		return chars
+	end
+	local function altCaps(str)
+		local new = ""
+		for i, c in characters(str) do
+			if (i - 1) % 2 == 0 then
+				new ..= c:upper()
+			else
+				new ..= c:lower()
+			end
+		end
+		return new
+	end
+	-- no need for autoconvert
+	Betabot.API.CommandAPI.CreateCommand("altcaps", {
+		description = "alternates between uppercase and lowercase",
+		callback = function(_, args)
+			local str = args[1]
+			table.remove(args, 1)
+			for _, part in args do
+				str ..= " " .. part
+			end
+			Betabot.Utils.Chat(altCaps(str))
+		end,
+	})
+end)
+
+-- Bot info command (don't remove)
+
+Betabot.API.CommandAPI.CreateCommand("botInfo", {
+	callback = function()
+		Betabot.Utils.Chat("Bot is open source and made by @RealPacket on GitHub, licensed under the GPL-3.0 license.")
+		Betabot.Utils.Chat("Source Code is available at: RealPacket/My-Scripts/Universal Scripts/Bot (on GitHub)")
+	end,
+})
+
+runFn(function()
+	local function getVectorsFromN(n)
+		local camera = workspace.CurrentCamera
+		local forward = camera.CFrame.LookVector * n
+		local backward = -camera.CFrame.LookVector * n
+		local right = -camera.CFrame.RightVector * n
+		local left = camera.CFrame.RightVector * n
+		return {
+			forward = forward,
+			backward = backward,
+			right = right,
+			left = left,
+		}
+		-- local forward = Vector3.new(0, 0, -n)
+		-- local backward = Vector3.new(0, 0, n)
+		-- local right = Vector3.new(n)
+		-- local left = Vector3.new(-n)
+		-- return {
+		-- 	forward = forward,
+		-- 	backward = backward,
+		-- 	right = right,
+		-- 	left = left,
+		-- }
+	end
+
+	local function parse(src)
+		local calls = src:split("(") -- opening
+		local AST = {}
+		for i, call in calls do
+			local args = {}
+			if call:sub(call:len()) == ")" then
+				continue
+			end
+			local argStr = calls[i + 1]
+			call = call:gsub(" ", ""):gsub("\t", "")
+			if argStr:find(",") then
+				for _, arg in argStr:split(",") do
+					if arg:sub(arg:len()) == ")" then
+						arg = arg:sub(1, arg:len() - 1)
+					end
+					if tonumber(arg) then
+						table.insert(args, tonumber(arg))
+					else
+						table.insert(args, arg)
+					end
+				end
+			else
+				local arg = argStr:sub(1, argStr:len() - 1)
+				if tonumber(arg) then
+					table.insert(args, tonumber(arg))
+				else
+					table.insert(args, arg)
+				end
+			end
+			table.insert(AST, {
+				targetName = call,
+				args = args,
+			})
+		end
+		return AST
+	end
+
+	Betabot.API.CommandAPI.CreateCommand("move", {
+		description = "moves the bot in a direction. example: move forward(1) strafe(right, 4)",
+		callback = function(_, args)
+			-- example: forward(1) backward(2) strafe(right, 4) jump()
+			local str = args[1]
+			table.remove(args, 1)
+			for _, part in args do
+				str ..= " " .. part
+			end
+			local parsed = parse(str)
+			for _, block in parsed do
+				if block.targetName ~= "strafe" then
+					local vec = getVectorsFromN(block.args[1])[block.targetName]
+					if not vec then
+						return Betabot.Utils.Chat(('Unknown direction "%s"!'):format(block.targetName))
+					end
+					Character.Humanoid:MoveTo(Character:GetPivot().Position + vec)
+				else
+					local dir = block.args[1]
+					local vec = getVectorsFromN(block.args[2])[dir]
+					if not vec then
+						return Betabot.Utils.Chat(('Unknown direction "%s"!'):format(dir))
+					end
+					Character.Humanoid:MoveTo(Character:GetPivot().Position + vec)
+				end
+			end
+		end,
+	})
+end)

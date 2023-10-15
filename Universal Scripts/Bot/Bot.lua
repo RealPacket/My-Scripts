@@ -16,11 +16,21 @@ end
 
 -- [[  Typings. (only exported stuff)  ]] --
 
+type config = {
+	--- A set of readonly message formats that you can set.
+	MessageFormats: { [string]: string },
+	debug: boolean,
+	debugFn: (...any) -> (),
+	prefix: string,
+	whitelistEnabled: boolean,
+}
+
 type Betabot = {
 	Utils: Utils,
 	API: APIs,
 	Commands: commands,
 	Logs: logs,
+	Config: config,
 }
 
 type command = {
@@ -113,7 +123,9 @@ type PermissionsAPI = {
 	--- If a permission doesn't exist, an error gets thrown.
 	GetPermission: (self: PermissionsAPI, name: string) -> Permission,
 	--- Creates/Adds a permission with the specified
-	--- If the permission specified, an error gets thrown.
+	--- If the permission specified was
+	-- created before this call of CreatePermission,
+	--- A warning will be emitted.
 	CreatePermission: (self: PermissionsAPI, name: string) -> Permission,
 	--- A list of permissions
 	Permissions: { [string]: Permission },
@@ -255,7 +267,7 @@ end
 
 -- [[  End Utils.  ]] --
 
--- [[  Initialize Betabot global, APIs, Utils, and other things. (PART 1)  ]] --
+-- [[  Initialize Betabot (not as a global yet), APIs, Utils, and other things. (PART 1)  ]] --
 
 local Betabot: Betabot = {}
 Betabot.API = {
@@ -290,6 +302,10 @@ if isLegacy then
 	ChatEvent = ChatEvents:FindFirstChild("SayMessageRequest")
 end
 
+if not ChatEvent and isLegacy then
+	warn("Chat event not found, this game may be using a custom chat system.")
+end
+
 -- Bing wrote me this,
 -- it's for escaping the prefix
 -- if it contains some characters that TextChatService escapes into HTML entities
@@ -318,7 +334,7 @@ local function unescapeHTML(str)
 end
 
 -- Some configurations you can change.
-local config = {
+local config: config = table.freeze({
 	-- show debug logs (if any)?
 	debug = true,
 	-- the debug function.
@@ -326,7 +342,7 @@ local config = {
 	-- The prefix every message that runs a command will start with.
 	prefix = ">",
 	-- determines if the whitelist is enabled.
-	whitelistedEnabled = false,
+	whitelistEnabled = false,
 	-- formats for certain messages that the bot says.
 	MessageFormats = {
 		---The message that gets sent when the bot script is executed.
@@ -336,7 +352,7 @@ local config = {
 		---The message that gets sent when a player tries to run a command that doesn't exist.
 		UnknownCommandMessage = "Unknown command " .. '"{COMMAND}"! Try using "{PREFIX}cmds" for a list of commands.',
 	},
-}
+})
 
 -- debug-logs some variables.
 local function log(t: { { name: string, value: any } })
@@ -405,11 +421,11 @@ local connections: { RBXScriptConnection } = {
 
 local LocalPlayer = Players.LocalPlayer
 
---[[
+--[=[
     all userIDs of the whitelisted players, can be deleted.
     Don't forget to modify the function
     if you do remove the whitelist table!
-]]
+]=]
 local whitelisted: { number } = {
 	4793611397,
 }
@@ -423,7 +439,7 @@ local whitelisted: { number } = {
 
     @returns If the player can run the command
 ]]
-local function canPlayerUseCommand(player: Player, command: command)
+local function canPlayerUseCommand(player: Player)
 	if config.whitelistEnabled then
 		return table.find(whitelisted, player.UserId) ~= nil
 	end
@@ -431,48 +447,65 @@ local function canPlayerUseCommand(player: Player, command: command)
 end
 
 runFn(function()
-	type info = {
-		-- selector: string,
-		args: { string },
-		flags: { [string]: boolean },
-		requesting: Player?,
-	}
-	type basicSelectorHandler = (info) -> Player?
-	type advancedSelectorHandler = {
-		callback: basicSelectorHandler,
-		aliases: { string }?,
-		getFlags: (selector: string) -> { [string]: boolean },
-	}
-	type selectorHandler = advancedSelectorHandler | basicSelectorHandler
-	type selectorHandlers = { [string]: selectorHandler }
-	local selectorHandlers: selectorHandlers = {
-		self = {
-			callback = function(info)
-				return info.requesting
-			end,
-			aliases = { "s", "me" },
-		},
-		display = {
-			callback = function(info)
-				for _, player in Players:GetPlayers() do
-					if player.DisplayName == info.args[1] then
-						return player
-					end
-				end
-			end,
-			aliases = { "displayname" },
-		},
-		name = {
-			callback = function(info) end,
-		},
-		id = {},
-	}
+	-- later!
+	-- type info = {
+	-- 	-- selector: string,
+	-- 	args: { string },
+	-- 	flags: { [string]: boolean },
+	-- 	requesting: Player?,
+	-- }
+	-- type basicSelectorHandler = (info) -> Player?
+	-- type advancedSelectorHandler = {
+	-- 	callback: basicSelectorHandler,
+	-- 	aliases: { string }?,
+	-- 	getFlags: (selector: string) -> { [string]: boolean },
+	-- }
+	-- type selectorHandler = advancedSelectorHandler | basicSelectorHandler
+	-- type selectorHandlers = { [string]: selectorHandler }
+	-- local selectorHandlers: selectorHandlers = {
+	-- 	self = {
+	-- 		callback = function(info)
+	-- 			return info.requesting
+	-- 		end,
+	-- 		aliases = { "s", "me" },
+	-- 	},
+	-- 	display = {
+	-- 		callback = function(info)
+	-- 			for _, player in Players:GetPlayers() do
+	-- 				if player.DisplayName == info.args[1] then
+	-- 					return player
+	-- 				end
+	-- 			end
+	-- 		end,
+	-- 		aliases = { "displayname" },
+	-- 	},
+	-- 	name = {
+	-- 		callback = function(info) end,
+	-- 	},
+	-- 	id = {},
+	-- }
 	local function GetPlayerBySelector(name: string, caseInsensitive: boolean?, requestingPlayer: Player?): Player?
 		if not caseInsensitive then
 			caseInsensitive = true
 		end
 		if requestingPlayer and name == "me" then
 			return requestingPlayer
+		end
+		if name == "random" then
+			local players = Players:GetPlayers()
+			-- remove requesting player from the options.
+			if requestingPlayer then
+				local index = table.find(players, requestingPlayer)
+				if index then
+					table.remove(players, index)
+				end
+			end
+			-- removes local player from options
+			local index = table.find(players, LocalPlayer)
+			if index then
+				table.remove(players, index)
+			end
+			return players[math.random(1, #players)]
 		end
 		for _, player in Players:GetPlayers() do
 			if
@@ -495,10 +528,14 @@ runFn(function()
 end)
 
 local FloodCheckInfo = {}
---- I could just rejoin the player but that would crash the client if you're using Fluxus.
+--- I could just rejoin same server but that would crash the game if you're using Fluxus.
 --- (p.s. showerhead can't fix his exploit)
 runFn(function()
+	--- TextChatService allows you to send ~20 messages before getting rate limited,
+	--- LegacyChatService allows you to send 7 messages before getting rate limited
 	FloodCheckInfo.MESSAGES_ALLOWED = not isLegacy and 20 or 7
+	--- TextChatService requires you to wait ~30 seconds before you can send another message.
+	--- LegacyChatService requires you to wait 15 seconds before you can send another message.
 	FloodCheckInfo.DECAY_TIME_PERIOD = not isLegacy and 30 or 15
 	FloodCheckInfo.floodCheckTable = {}
 
@@ -511,8 +548,7 @@ end)
 ---@param message string
 ---@param broadcast boolean
 ---@param target Player
----@return TextChatMessage|nil
-local function Chat(message: string, broadcast: boolean, target: Player)
+local function Chat(message: string, broadcast: boolean, target: Player): TextChatMessage?
 	if type(broadcast) ~= "boolean" then
 		broadcast = true
 	end
@@ -599,6 +635,11 @@ local function createCommand(name: string, command: command): command
 end
 
 Betabot.API.CommandAPI.CreateCommand = createCommand
+
+-- [[  END Initialize Betabot (not as a global yet), APIs, Utils, and other things. (PART 1)  ]] --
+
+-- [[  Initialize Betabot (not as a global yet), APIs, Utils, and other things. (PART 2)  ]] --
+
 do
 	local Permission: Permission
 	do
@@ -614,11 +655,18 @@ do
 		end
 		---@param name string
 		function Permission:constructor(name)
+			--- The name of this permission.
 			self.name = name
+			--- Gets fired once the permission gets granted to a player.
 			self.OnGrantedToPlayer = Signal.new()
+			--- Gets fired once the permission gets revoked from a player.
 			self.OnRevokedFromPlayer = Signal.new()
+			--- A list of players that have been granted this permission
 			self.grantedPlayers = {}
 		end
+		--[=[
+			Grants this permission to a player, fires the OnGrantedToPlayer event.
+		]=]
 		---@param target Player
 		function Permission:GrantToPlayer(target)
 			if table.find(self.grantedPlayers, target) ~= nil then
@@ -628,6 +676,9 @@ do
 			table.insert(self.grantedPlayers, target)
 			return target
 		end
+		--[=[
+			Revokes this permission from a player, fires the OnRevokedFromPlayer event.
+		]=]
 		---@param target Player
 		function Permission:RevokeFromPlayer(target)
 			local index = table.find(self.grantedPlayers, target)
@@ -647,6 +698,8 @@ do
 			return table.find(self.grantedPlayers, player) ~= nil
 		end
 	end
+	--- Creates/Adds a permission with the specified name.
+	--- Emits a warning if the permission existed before this call, and overrides the old permission.
 	---@param name string
 	function Betabot.API.PermissionsAPI:CreatePermission(name): Permission
 		if self.Permissions[name] then
@@ -655,7 +708,7 @@ do
 		local permission = Permission.new(name)
 		self.PermissionAdded:Fire(name, permission)
 		self.Permissions[name] = permission
-		return self.Permissions[name]
+		return permission
 	end
 	---@param name string
 	function Betabot.API.PermissionsAPI:GetPermission(name): Permission
@@ -677,15 +730,7 @@ do
 	end
 end
 
--- exported variables/symbols/etc
--- local exports = {
--- 	createCommand,
--- 	Chat,
--- 	GetPlayerByName,
--- 	req,
--- 	commands = commands,
--- 	logs = logs,
--- }
+-- [[  Initialize Betabot, APIs, Utils, and other things. (PART 2)  ]] --
 
 ---@param file string
 local function runCommandScript(file)
@@ -699,10 +744,12 @@ local function runCommandScript(file)
 end
 
 if #(listfiles("Betabot/Commands")) > 1 then
-	for _, file in listfiles("Betabot/Commands") do
+	for _, file in listfiles("Betabot/Commands") do -- for people
+		-- who do have other custom command scripts in the commands folder
 		runCommandScript(file)
 	end
 else
+	-- for people who don't have other custom command scripts in the commands folder
 	runCommandScript("Betabot/Commands/DefaultCommands.lua")
 end
 
@@ -719,7 +766,7 @@ local function handler(msg: string, player: Player)
 	)
 		:split(" ")[1]
 	-- are they whitelisted?
-	if not canPlayerUseCommand(player, commandName) then
+	if not canPlayerUseCommand(player) then
 		Chat("You aren't whitelisted, @" .. player.DisplayName .. ".")
 		return
 	end
@@ -756,6 +803,8 @@ local function handler(msg: string, player: Player)
 				no = false,
 				on = true,
 				off = false,
+				enabled = true,
+				disabled = false,
 				["false"] = false,
 				["true"] = true,
 			}
@@ -779,15 +828,9 @@ local function handler(msg: string, player: Player)
 	task.spawn(callback, unpack(params))
 end
 
-
-
 -- [[ END message handler ]] --
 
-
-
--- [[ Event Register Functions (for compatibility for multiple chat versions.) ]] --
-
-
+-- [[ Event Register Functions (for compatibility with multiple chat versions.) ]] --
 
 local function registerChattedEventLCS()
 	connections.Chat = Players.PlayerChatted:Connect(function(_, player, message, targetPlayer)
@@ -814,9 +857,10 @@ local function registerChattedEventTCS()
 			return
 		end
 		local author = Players:GetPlayerByUserId(msg.TextSource.UserId)
-		if author == LocalPlayer then
-			return
-		end
+		-- only if you want to exclude yourself from running commands
+		-- if author == LocalPlayer then
+		-- 	return
+		-- end
 		if msg.Text:sub(1, #escapeHTML(config.prefix)) ~= escapeHTML(config.prefix) then
 			table.insert(Betabot.Logs.Game.Chat, {
 				Author = author,
@@ -836,15 +880,9 @@ end
 
 registerChattedEvent()
 
-
-
 -- [[ END Event Register Functions. ]] --
 
-
-
 -- [[ Destroy bot function ]] --
-
-
 
 getgenv().__destroy_bot = function(isReboot)
 	getgenv().__destroy_bot = nil
@@ -857,15 +895,9 @@ getgenv().__destroy_bot = function(isReboot)
 	end
 end
 
-
-
 -- [[  END Destroy bot function  ]] --
 
-
-
 -- [[  Start Message  ]] --
-
-
 
 Chat(
 	format(config.MessageFormats.StartMessage, {
