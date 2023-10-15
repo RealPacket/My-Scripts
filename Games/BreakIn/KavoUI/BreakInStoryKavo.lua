@@ -49,7 +49,6 @@ local SIBasement
 local SPKitchen
 -- Vars for TPStuff
 local selectedTP
-
 local TPs = {
 	["Hiding Spot 1"] = CFrame.new(-47, 3, -194),
 	["Hiding Spot 2"] = CFrame.new(-3, 3, -209),
