@@ -11,7 +11,7 @@ shared.NoProxPromptWait =
 local SettingsHolder = shared.NoProxPromptWait
 local moddedProximityPrompts = {}
   -- if you were trying to get only the ones parented to the workspace, and not some folder in the workspace, you'd change this to workspace:GetChildren()
-for _, ProxPrompt in pairs(workspace:GetDescendants()) do
+for _, ProxPrompt in workspace:GetDescendants() do
   -- Make sure that there's only Proximity Prompts,
   -- if we allowed every type of class, we'd get a error if there would be even just 1 thing that isn't a proximity prompt.
   if ProxPrompt:IsA("ProximityPrompt") then
