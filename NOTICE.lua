@@ -13,4 +13,3 @@
     You should have received a copy of the GNU Affero General Public License along with My-Scripts.
     If not, see <https://www.gnu.org/licenses/>.
 ]]
-loadstring(game:HttpGet("https://raw.githubusercontent.com/RealPacket/My-Scripts/main/Loader.lua", true))()

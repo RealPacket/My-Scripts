@@ -1,13 +1,13 @@
 --!strict
 
+-- [[  Services and variables  ]] --
+
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
--- if the chat system version isn't Enum.ChatVersion.TextChatService,
--- true, else, false
-local isLegacy = TextChatService.ChatVersion == Enum.ChatVersion.LegacyChatService
 local ChatVersion = TextChatService.ChatVersion
+local isLegacy = ChatVersion == Enum.ChatVersion.LegacyChatService
 local runFn = task.spawn
 if getgenv().__destroy_bot then
 	getgenv().__destroy_bot(true)
@@ -15,6 +15,27 @@ if getgenv().__destroy_bot then
 end
 
 -- [[  Typings. (only exported stuff)  ]] --
+
+type Events = {
+	--- Gets fired once the bot gets unloaded
+	OnDestroy: SignalInstance,
+	--- Fired when the bot is Loaded
+	OnLoad: SignalInstance,
+	[string]: SignalInstance,
+}
+
+type Betabot = {
+	--- Some utilities that you'll probably use some time
+	Utils: Utils,
+	API: APIs,
+	Commands: commands,
+	Logs: logs,
+	Config: config,
+	Events: Events,
+	Loaded: boolean,
+	--- A table containing connections.
+	Connections: { [string]: Connection },
+}
 
 type config = {
 	--- A set of readonly message formats that you can set.
@@ -25,20 +46,24 @@ type config = {
 	whitelistEnabled: boolean,
 }
 
-type Betabot = {
-	Utils: Utils,
-	API: APIs,
-	Commands: commands,
-	Logs: logs,
-	Config: config,
+type autoConvertSettingsOption = {
+	--- A list of types that shouldn't be automatically converted.
+	disabledTypes: { "number" | "string" | "boolean" },
+	--- A list of types that should be converted (e.x. Player (it's not enabled by default))
+	enabledTypes: { "Player" },
 }
 
+type commandOptions = {
+	autoConvert: boolean?,
+	autoConvertSettings: autoConvertSettingsOption,
+	extraRawArgsParam: boolean?,
+}?
+
 type command = {
+	--- An optional description of what the command does.
 	description: string?,
-	options: {
-		autoConvert: boolean?,
-		extraRawArgsParam: boolean?,
-	}?,
+	--- Some options that you can toggle on and off.
+	options: commandOptions,
 	callback: (
 		---player that ran the command
 		user: Player,
@@ -84,11 +109,19 @@ type logs = {
 	Bot: BotLogs,
 }
 
+type GithubAPI = {
+	---Fetches content from the specified path
+	---@example Commands/DefaultCommands.lua
+	Request: (path: string) -> string,
+}
+
 type APIs = {
 	--- An API which allows you to create certain permissions and revoke/grant it from/to players.
 	PermissionsAPI: PermissionsAPI,
 	--- An API which allows you to create new commands.
 	CommandAPI: CommandAPI,
+	--- An API which allows you to interact with the bot's github folder
+	GithubAPI: GithubAPI,
 }
 
 type CommandAPI = {
@@ -136,15 +169,19 @@ type PermissionsAPI = {
 --]=]
 type Connection = {
 	connected: boolean,
-	target: SignalUtil,
+	target: SignalInstance,
+	--- Disconnects the connection from the remote event that it was connected to.
 	Disconnect: (self: Connection) -> (),
 }
 
+--[=[
+	An instance of the Signal class.
+]=]
 type SignalInstance = {
 	--- Connects to this signal and returns the connection object representing this connection.
-	Connect: (self: SignalUtil, callback: (...any) -> ()) -> Connection,
+	Connect: (self: SignalInstance, callback: (...any) -> ()) -> Connection,
 	--- Fires all connections connected to this signal instance.
-	Fire: (self: SignalUtil, ...any) -> (),
+	Fire: (self: SignalInstance, ...any) -> (),
 	--[=[
         Creates a connection
 	    that immediately calls the callback
@@ -152,20 +189,36 @@ type SignalInstance = {
 	    only allowing the callback to be executed once.
 	    Returns the connection object representing the connection.
     ]=]
-	Once: (self: SignalUtil, callback: (...any) -> ()) -> Connection,
-	-- Yields the current thread until the signal is fired, and returns the arguments that were fired.
-	Wait: (self: SignalUtil) -> ...any,
+	Once: (self: SignalInstance, callback: (...any) -> ()) -> Connection,
+	--- Yields the current thread until the signal is fired, and returns the arguments that were fired.
+	Wait: (self: SignalInstance) -> ...any,
+	--- Disconnects all connections connected to the current signal.
+	Destroy: (self: SignalInstance) -> (),
 }
 
+--[==[
+	A class that provides a way for user-defined functions, called listeners,
+	to call when something happens in the game.
+	When an event happens, the Signal fires and calls any listeners that are connected to it.
+	An Signal may also pass arguments to each listener to provide extra information about the event.
+	@class
+]==]
 type SignalUtil = {
-	new: () -> SignalInstance,
-	constructor: (self: SignalInstance) -> (),
+	new: (name: string?) -> SignalInstance,
+	constructor: (self: SignalInstance, name: string?) -> (),
 }
 
+--[==[
+	Some utilities that you can use in your command scripts.
+]==]
 type Utils = {
 	GetPlayerByName: (name: string, caseInsensitive: boolean?, requestingPlayer: Player?) -> Player?,
 	Chat: (message: string, broadcast: boolean, target: Player) -> TextChatMessage?,
 	Signal: SignalUtil,
+	--- Formats a string like "{PREFIX}cmds" (which called with ">" as the prefix will result in ">cmds")
+	Format: () -> (),
+	--- Logs a message into the console if config.debug is set to true
+	Log: (...any) -> (),
 }
 
 -- [[  End Typings.  ]] --
@@ -175,9 +228,10 @@ type Utils = {
 -- Simple signal util, made because roblox bindable events do the monkey with tables
 -- (they re-create tables when passing into the callback :skull:)
 
---[=[
-   An object that represents a connection that is connected to a signal.
---]=]
+--- An object that represents a connection that is connected to a signal.
+--- @class Connection
+--- @field connected boolean
+--- @field callback function
 local Connection
 do
 	Connection = setmetatable({}, {
@@ -186,13 +240,19 @@ do
 		end,
 	})
 	Connection.__index = Connection
+	--- Creates a new connection
 	function Connection.new(...)
 		local self = setmetatable({}, Connection)
 		return self:constructor(...) or self
 	end
+	--- Constructs a connection.
 	function Connection:constructor(target, callback)
+		--- Boolean that determines if the connection is connected,
+		-- set to false when you call disconnect.
 		self.connected = true
+		--- Callback that should be ran once its target gets fired
 		self.callback = callback
+		--- The Signal that this connection is connected to
 		self.target = target
 	end
 	--[=[
@@ -208,8 +268,17 @@ do
 		table.remove(self.target.conns, connIndex)
 	end
 end
-
-local Signal
+--[==[
+	provides a way for user-defined functions,
+	called listeners,
+	to call when something happens in the game.
+	When an event happens, the Signal fires and calls any listeners that are connected to it.
+	An Signal may also pass arguments to each listener to provide extra information about the event.
+]==]
+---@class Signal
+---@field conns Connection[]
+---@field name string?
+local Signal: SignalUtil
 do
 	Signal = setmetatable({}, {
 		__tostring = function()
@@ -217,51 +286,67 @@ do
 		end,
 	})
 	Signal.__index = Signal
-	function Signal.new(...)
-		local self = setmetatable({}, Signal)
+	--- Creates a new Signal instance.
+	function Signal.new(...): SignalInstance
+		local self = setmetatable({}, {
+			__tostring = function(self: SignalInstance)
+				return self.name and ("%s (Signal)"):format(self.name) or "Signal"
+			end,
+			__index = Signal,
+		})
 		return self:constructor(...) or self
 	end
-	function Signal:constructor()
+	--- Constructs a new Signal instance
+	---@return Signal
+	function Signal:constructor(name: string?)
 		self.conns = {}
+		if name then
+			self.name = name
+		end
 	end
 	--- Connects to this signal and returns the connection object representing this connection.
-	function Signal:Connect(callback)
+	---@param callback function
+	function Signal:Connect(callback: (...any) -> ()): SignalInstance
 		local conn = Connection.new(self, callback)
 		table.insert(self.conns, conn)
 		return conn
 	end
 	--- Fires all connections connected to this signal instance.
 	function Signal:Fire(...)
-		local args = { ... }
 		for _, conn in self.conns do
-			conn.callback(unpack(args))
+			conn.callback(...)
 		end
 	end
-	-- Yields the current thread until the signal is fired, and returns the arguments that were fired.
+	--- Yields the current thread until the signal is fired, and returns the arguments that were fired.
 	function Signal:Wait()
 		local waitingCoroutine = coroutine.running()
-		local cn
-		cn = self:Connect(function(...)
-			cn:Disconnect()
+		local conn
+		conn = self:Connect(function(...)
+			conn:Disconnect()
 			task.spawn(waitingCoroutine, ...)
 		end)
 		return coroutine.yield()
 	end
-	--[=[
+	--[==[
         Creates a connection
 	    that immediately calls the callback
 	    and disconnects from the signal as soon as the connection is triggered,
 	    only allowing the callback to be executed once.
 	    Returns the connection object representing the connection.
-    ]=]
-	function Signal:Once(callback)
+    ]==]
+	function Signal:Once(callback: (...any) -> ())
 		local conn
 		conn = self:Connect(function(...)
-			local args = { ... }
-			callback(unpack(args))
+			callback(...)
 			conn:Disconnect()
 		end)
 		return conn
+	end
+	--- Disconnects all connected Connections.
+	function Signal:Destroy()
+		for _, conn in self.conns do
+			conn:Disconnect()
+		end
 	end
 end
 
@@ -269,10 +354,26 @@ end
 
 -- [[  Initialize Betabot (not as a global yet), APIs, Utils, and other things. (PART 1)  ]] --
 
-local Betabot: Betabot = {}
+local Betabot: Betabot = {
+	Loaded = false,
+}
+
+Betabot.Connections = {}
+
 Betabot.API = {
+	GithubAPI = {},
 	CommandAPI = {},
-	PermissionsAPI = { Permissions = {}, PermissionAdded = Signal.new(), PermissionRemoving = Signal.new() },
+	PermissionsAPI = {
+		Permissions = {},
+		PermissionAdded = Signal.new("Permission Added"),
+		PermissionRemoving = Signal.new("Permission Removing"),
+	},
+}
+Betabot.Events = {
+	--- Gets fired once getgenv().__destroy_bot gets called
+	OnDestroy = Signal.new("Destroy"),
+	OnReload = Signal.new("Reload"),
+	OnLoad = Signal.new("Load"),
 }
 Betabot.Commands = {}
 Betabot.Utils = {
@@ -295,10 +396,11 @@ Betabot.Logs = {
 	},
 }
 Betabot.Utils.Chat = function() end
+Betabot.Utils.Format = function() end
 
 local ChatEvent: RemoteEvent?
 if isLegacy then
-	local ChatEvents: Folder? = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
+	local ChatEvents = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
 	ChatEvent = ChatEvents:FindFirstChild("SayMessageRequest")
 end
 
@@ -369,21 +471,20 @@ local function log(t: { { name: string, value: any } })
 		warn("[BOT] Debug - " .. message)
 	end
 end
-
-local function format(str, argsTable)
+local function format(str, args)
 	if not str then
 		error("Unable to format - no string provided.")
 	end
 	if type(str) ~= "string" then
 		error('Unable to format - expected "string", got "' .. type(str) .. '" instead for argument #1.')
 	end
-	if not argsTable then
+	if not args then
 		error("Unable to format - no argument(s) table provided")
 	end
-	if type(argsTable) ~= "table" then
-		error('Unable to format - expected "table", got "' .. type(argsTable) .. '" for argument #2.')
+	if type(args) ~= "table" then
+		error('Unable to format - expected "table", got "' .. type(args) .. '" for argument #2.')
 	end
-	for name, value in argsTable do
+	for name, value in args do
 		if not str:find("{" .. name .. "}") then
 			continue
 		end
@@ -392,32 +493,12 @@ local function format(str, argsTable)
 	return str
 end
 
-local function req(opt)
-	local fn = if Fluxus then Fluxus.request elseif request then request elseif syn then syn.request else nil
-	if fn then
-		return fn(opt)
-	end
-end
-function figlet(msg)
-	local res = req({
-		Url = "https://uploadbeta.com/api/figlet/?cached&msg=" .. HttpService:UrlEncode(msg),
-		Method = "GET",
-	})
-	local decoded = HttpService:JSONDecode(res.Body)
-	if type(decoded) ~= "string" then
-		return nil
-	end
-	local messages
-	if decoded:find("\n") then
-		messages = decoded:split("\n")
-	else
-		messages = { decoded }
-	end
-	return messages
-end
+Betabot.Utils.Format = format
+
 local connections: { RBXScriptConnection } = {
 	Chat = nil,
 }
+Betabot.Connections = connections
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -431,12 +512,8 @@ local whitelisted: { number } = {
 }
 
 --[[
-    Check if the user is whitelisted
-
-    @param commandName the name of the command (TODO: make it command obj)
-
+    Check if the user can run the command
     @param player the Player trying to run the command.
-
     @returns If the player can run the command
 ]]
 local function canPlayerUseCommand(player: Player)
@@ -531,6 +608,13 @@ local FloodCheckInfo = {}
 --- I could just rejoin same server but that would crash the game if you're using Fluxus.
 --- (p.s. showerhead can't fix his exploit)
 runFn(function()
+	-- NOTE:
+	--  DECAY_TIME_PERIOD and MESSAGES_ALLOWED are only 100% perfect on LegacyChatService,
+	--  This is because I could find the values in the chat module,
+	--  but in TextChatService, the flood detector is in the CoreGui.
+	--  (it's not possible to get 100% accurate numbers,
+	--    so I just incremented the number starting from 7 and ending at 20)
+
 	--- TextChatService allows you to send ~20 messages before getting rate limited,
 	--- LegacyChatService allows you to send 7 messages before getting rate limited
 	FloodCheckInfo.MESSAGES_ALLOWED = not isLegacy and 20 or 7
@@ -591,6 +675,7 @@ end
 ---@type string[]
 local files = {
 	"Commands/DefaultCommands.lua",
+	"Bot.lua",
 }
 
 local base = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/"
@@ -599,11 +684,12 @@ local base = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/"
 local baseFolder = "Betabot/"
 
 ---@param path string
+---Fetches content from the specified path
+---@example Commands/DefaultCommands.lua
 ---@return string
 local function githubRequest(path)
 	if not isfile(baseFolder .. path) then
-		local suc, res
-		suc, res = pcall(function()
+		local suc, res = pcall(function()
 			return game:HttpGet(base .. path, true)
 		end)
 		if not suc or res == "404: Not Found" then
@@ -613,6 +699,8 @@ local function githubRequest(path)
 	end
 	return readfile(baseFolder .. path)
 end
+
+Betabot.API.GithubAPI.Request = githubRequest
 
 ---@param file string
 for _, file in files do
@@ -641,6 +729,11 @@ Betabot.API.CommandAPI.CreateCommand = createCommand
 -- [[  Initialize Betabot (not as a global yet), APIs, Utils, and other things. (PART 2)  ]] --
 
 do
+	---@class Permission
+	---@field name string
+	---@field OnGrantedToPlayer Signal
+	---@field OnRevokedFromPlayer Signal
+	---@field grantedPlayers Player[]
 	local Permission: Permission
 	do
 		Permission = setmetatable({}, {
@@ -744,8 +837,8 @@ local function runCommandScript(file)
 end
 
 if #(listfiles("Betabot/Commands")) > 1 then
-	for _, file in listfiles("Betabot/Commands") do -- for people
-		-- who do have other custom command scripts in the commands folder
+	--- enumerate through every file in the commands folder.
+	for _, file in listfiles("Betabot/Commands") do
 		runCommandScript(file)
 	end
 else
@@ -833,8 +926,8 @@ end
 -- [[ Event Register Functions (for compatibility with multiple chat versions.) ]] --
 
 local function registerChattedEventLCS()
+	--- NOTE: PlayerChatted doesn't get fired if the sender is LocalPlayer
 	connections.Chat = Players.PlayerChatted:Connect(function(_, player, message, targetPlayer)
-		log({ { name = "msg", value = message }, { name = "recip", value = targetPlayer or "nil" } })
 		if message:sub(1, 1) ~= config.prefix then
 			table.insert(Betabot.Logs.Game.Chat, {
 				Author = player,
@@ -857,7 +950,6 @@ local function registerChattedEventTCS()
 			return
 		end
 		local author = Players:GetPlayerByUserId(msg.TextSource.UserId)
-		-- only if you want to exclude yourself from running commands
 		-- if author == LocalPlayer then
 		-- 	return
 		-- end
@@ -886,18 +978,21 @@ registerChattedEvent()
 
 getgenv().__destroy_bot = function(isReboot)
 	getgenv().__destroy_bot = nil
+	Betabot.Events.OnDestroy:Fire(isReboot)
+	Betabot.Loaded = false
+	getgenv().Betabot = nil
 	for _, connection in connections do
 		-- stop listening to other connections
 		connection:Disconnect()
 	end
 	if not isReboot then
-		Chat("[INFO]: Bot has been stopped (destroy_bot function ran)!", true)
+		Chat("[INFO]: Bot has been stopped (destroy_bot function ran)!")
 	end
 end
 
 -- [[  END Destroy bot function  ]] --
 
--- [[  Start Message  ]] --
+-- [[  Start Message AND Set loaded to true  ]] --
 
 Chat(
 	format(config.MessageFormats.StartMessage, {
@@ -906,5 +1001,8 @@ Chat(
 	}),
 	true
 )
+
+Betabot.Loaded = true
+Betabot.Events.OnLoad:Fire()
 
 -- [[  END Start Message  ]] --

@@ -1,3 +1,18 @@
+--[[
+     This file is part of RealPacket/My-Scripts, a collection of scripts licensed under AGPL.
+    My-Scripts is 100% free scripts:
+        you can redistribute it and/or modify it under
+        the terms of the GNU Affero General Public License as published by the Free Software Foundation,
+        either version 3 of the License, or (at your option) any later version.
+
+    My-Scripts is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY;
+        without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+        See the GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License along with My-Scripts.
+    If not, see <https://www.gnu.org/licenses/>.
+]]
 -- NOTE: this does have some bugs, I just wanna publish it early.
 
 local Players = game:GetService("Players")
@@ -8,68 +23,79 @@ local target: Player? = nil
 local sittingOnTarget = false
 
 local function onJumpRequest()
-    -- if they're not standing on anyone, don't do anything.
-    if target == nil then return end
-    target = nil
-    sittingOnTarget = false
-    lPlayer.Character.PrimaryPart.Anchored = false
-    lPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+	-- if they're not standing on anyone, don't do anything.
+	if target == nil then
+		return
+	end
+	target = nil
+	sittingOnTarget = false
+	lPlayer.Character.PrimaryPart.Anchored = false
+	lPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
 end
-
 
 UserInputService.JumpRequest:Connect(onJumpRequest)
 
 local function targetLoop()
-  -- lPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.None)
-  while target and target ~= nil and sittingOnTarget do
-  	-- lPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.None)
-    local targetHead: Part? = target.Character:FindFirstChild("Head")
-    lPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-    lPlayer.Character.PrimaryPart.Anchored = false
-    local Position = targetHead.CFrame + (Vector3.new(0, targetHead.Size.Y + 2, 0))
-    lPlayer.Character:PivotTo(Position)
-    lPlayer.Character.PrimaryPart.Anchored = true
-    task.wait()
-  end
+	-- lPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.None)
+	while target and target ~= nil and sittingOnTarget do
+		-- lPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.None)
+		local targetHead: Part? = target.Character:FindFirstChild("Head")
+		lPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+		lPlayer.Character.PrimaryPart.Anchored = false
+		local Position = targetHead.CFrame + (Vector3.new(0, targetHead.Size.Y + 2, 0))
+		lPlayer.Character:PivotTo(Position)
+		lPlayer.Character.PrimaryPart.Anchored = true
+		task.wait()
+	end
 end
-
 
 local function onPlayerRemoving(Player: Player)
 	if Player == target then
 		lPlayer.Character.PrimaryPart.Anchored = false
-        target = nil
-        lPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-		else
+		target = nil
+		lPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+	else
 		return
 	end
-    -- do other things
+	-- do other things
 end
 
 local function onPlayerAdded(Player: Player)
-    if Player == lPlayer then return end
-    task.spawn(function()
-        if not Player.Character then Player.CharacterAdded:Wait() end
+	if Player == lPlayer then
+		return
+	end
+	task.spawn(function()
+		if not Player.Character then
+			Player.CharacterAdded:Wait()
+		end
 
-        -- the player's head
-        local PlayerHead: Part? = Player.Character:WaitForChild("Head", 0.4)
+		-- the player's head
+		local PlayerHead: Part? = Player.Character:WaitForChild("Head", 0.4)
 
-        if not PlayerHead then return end
-        if not PlayerHead.CanCollide then PlayerHead.CanCollide = true end
+		if not PlayerHead then
+			return
+		end
+		if not PlayerHead.CanCollide then
+			PlayerHead.CanCollide = true
+		end
 
-        PlayerHead.Touched:Connect(function(part)
-            -- if the player isn't us, we're not interested in it.
-            if part.Parent == lPlayer.Character then return end
+		PlayerHead.Touched:Connect(function(part)
+			-- if the player isn't us, we're not interested in it.
+			if part.Parent == lPlayer.Character then
+				return
+			end
 
-
-            sittingOnTarget = true
-            target = Players:GetPlayerFromCharacter(Player.Character)
-            targetLoop()
-        end)
-    end)
+			sittingOnTarget = true
+			target = Players:GetPlayerFromCharacter(Player.Character)
+			targetLoop()
+		end)
+	end)
 end
 Players.PlayerRemoving:Connect(onPlayerRemoving)
 Players.PlayerAdded:Connect(onPlayerAdded)
 for _, player in Players:GetPlayers() do
-    if player == lPlayer then continue end
-    onPlayerAdded(player)
+	if player == lPlayer then
+		continue
+	end
+	onPlayerAdded(player)
 end

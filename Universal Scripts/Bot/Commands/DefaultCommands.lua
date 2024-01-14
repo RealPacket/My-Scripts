@@ -1,13 +1,22 @@
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-
-LocalPlayer.CharacterAdded:Connect(function(c)
-	Character = c
-end)
+local UserGameSettings = UserSettings():GetService("UserGameSettings")
 
 local runFn = task.spawn
+
+local Betabot: Betabot
+
+-- in an actual exploit environment.
+if getgenv then
+	Betabot = getgenv().Betabot
+end
+
+Betabot.Connections.CharacterAdded = LocalPlayer.CharacterAdded:Connect(function(c)
+	Character = c
+end)
 
 Betabot.API.CommandAPI.CreateCommand("test", {
 	description = "A testing command.",
@@ -48,18 +57,53 @@ Betabot.API.CommandAPI.CreateCommand("re", {
 	description = "resets the bot's character.",
 	callback = function()
 		if not Character then
-			return
+			Betabot.Utils.Chat(
+				"I don't have a character yet (most likely from someone using re), so I'll just wait for me to respawn"
+			)
+			LocalPlayer.CharacterAdded:Wait()
 		end
 		local Humanoid = Character:FindFirstChildOfClass("Humanoid")
 		if not Humanoid then
-			return
+			Betabot.Utils.Chat("I don't have a humanoid yet (most likely from someone using re), so I'll just wait.")
+			Humanoid = Character:WaitForChild("Humanoid")
 		end
 		Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
 	end,
 })
 
+Betabot.API.CommandAPI.CreateCommand("hclip", {
+	description = "clips the bot's Character position forward (uses PivotTo btw).",
+	options = {
+		autoConvert = true,
+	},
+	callback = function(_, args)
+		if type(args[1]) ~= "number" then
+			Betabot.Utils.Chat(
+				"I can't HClip, as you haven't provided the 1st required argument (or it's not a number)."
+			)
+			return
+		end
+
+		-- if args[1] >= 4e5 then
+		-- 	Betabot.Utils.Chat("HClipping up more than 4e5 studs will lag me back down, so I will not.")
+		-- 	return
+		-- end
+		if args[1] >= 1e5 then
+			Betabot.Utils.Chat("My sincerest reaction to how big that number is: I will not HClip.")
+			return
+		end
+		local direction = if args[1] <= -1 then "backward" else "forward"
+		local camera = workspace.CurrentCamera
+		local vec = direction == "forward" and camera.CFrame.LookVector * (Vector3.new(args[1], 0, args[1]))
+			or -camera.CFrame.LookVector * (Vector3.new(-args[1], 0, -args[1]))
+		local pos = (Character:GetPivot() + vec).Position
+		-- pos = Vector3.new(pos.X, Character:GetPivot().Y, pos.Z)
+		Character:PivotTo(CFrame.lookAt(pos, pos + vec))
+		Betabot.Utils.Chat("HClipped " .. direction .. "!")
+	end,
+})
 Betabot.API.CommandAPI.CreateCommand("vclip", {
-	description = "vertically clips the bot's HumanoidRootPart position up.",
+	description = "clips the bot's Character position up (uses PivotTo btw).",
 	options = {
 		autoConvert = true,
 	},
@@ -75,6 +119,10 @@ Betabot.API.CommandAPI.CreateCommand("vclip", {
 			Betabot.Utils.Chat("VClipping up more than 4e5 studs will lag me back down, so I will not.")
 			return
 		end
+		if args[1] >= 1e5 then
+			Betabot.Utils.Chat("My sincerest reaction to how big that number is: I will not VClip.")
+			return
+		end
 		if args[1] <= -513 then
 			Betabot.Utils.Chat("VClipping down more than 513 studs will lag me back up, so I will not.")
 			return
@@ -84,20 +132,46 @@ Betabot.API.CommandAPI.CreateCommand("vclip", {
 		Betabot.Utils.Chat("VClipped " .. direction .. "!")
 	end,
 })
-Betabot.API.CommandAPI.CreateCommand("shiftlock", {
-	description = "Toggles shift-lock (or set the state manually).",
-	options = {
-		autoConvert = true,
-	},
-	callback = function(_, args)
-		local state = args[1] and Enum.MouseBehavior.Default
-			or UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter
+runFn(function()
+	local conn
+	local shiftlock = Betabot.API.CommandAPI.CreateCommand("shiftlock", {
+		description = "Toggles shift-lock (or set the state manually).",
+		options = {
+			autoConvert = true,
+		},
+	})
 
+	function shiftlock.callback(_, args)
+		local state = args[1] and args[1] or UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter
+		local states = {
+			[false] = { mouseIcon = "", cameraOffset = Vector3.zero },
+			[true] = { mouseIcon = "rbxasset://textures/MouseLockedCursor.png", cameraOffset = Vector3.new(1.7) },
+		}
+		-- shift lock rotates your player relative to the camera
+		UserGameSettings.RotationType = state and Enum.RotationType.CameraRelative or Enum.RotationType.MovementRelative
+		-- it also locks your mouse to the center of the window.
 		UserInputService.MouseBehavior = state and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
+		-- get info about what mouse icon to use & the camera offset.
+		local currentState = states[state]
+		UserInputService.MouseIcon = currentState.mouseIcon
+		if state then
+			conn = LocalPlayer.CharacterAdded:Connect(function(c)
+				Character:WaitForChild("Humanoid").CameraOffset = currentState.cameraOffset
+			end)
+			Betabot.Connections.ShiftLock_CharacterAdded = conn
+		else
+			if conn then
+				conn:Disconnect()
+			end
+			if Betabot.Connections.ShiftLock_CharacterAdded then
+				Betabot.Connections.ShiftLock_CharacterAdded = nil
+			end
+			Character:FindFirstChildOfClass("Humanoid").CameraOffset = Vector3.new()
+		end
 
 		Betabot.Utils.Chat("Toggled shift-lock " .. (if state then "on" else "off") .. "!")
-	end,
-})
+	end
+end)
 Betabot.API.CommandAPI.CreateCommand("spin", {
 	description = "spin around! (speed defaults to 20)",
 	options = {
@@ -155,13 +229,9 @@ Betabot.API.CommandAPI.CreateCommand("getlogs", {
 		Betabot.Utils.Chat("Logs:")
 		task.wait()
 		for _, chatLog in chatLogs do
-			-- legacy chat service is gay so I have to use space instead of tabs
-			Betabot.Utils.Chat("_     Message: " .. chatLog.Message)
-			task.wait(1)
-			Betabot.Utils.Chat("_     Author: " .. chatLog.Author.DisplayName)
+			Betabot.Utils.Chat(chatLog.message)
+			Betabot.Utils.Chat("_     Time (UTC): " .. chatLog.timeStamp:FormatUniversalTime("H:MM:SS", "en-us"))
 			task.wait()
-			Betabot.Utils.Chat("_     Time: " .. chatLog.timeStamp:FormatUniversalTime("MMM D H:MM:SS", "en-us"))
-			task.wait(3)
 		end
 	end,
 })
@@ -180,11 +250,9 @@ runFn(function()
 			Betabot.Utils.Chat("Commands:")
 			for name, cmd in Betabot.Commands do
 				Betabot.Utils.Chat(name .. ":")
-				task.wait(2.4)
 				Betabot.Utils.Chat(
 					"_     - " .. (if cmd.description then cmd.description else "No description provided")
 				)
-				task.wait(2.6)
 			end
 		else
 			local command = Betabot.Commands[args[1]]
@@ -234,7 +302,6 @@ runFn(function()
 		end
 		listing = true
 		Betabot.Utils.Chat("Commands:")
-		task.wait(2.4)
 		local names = {}
 		for name, _ in Betabot.Commands do
 			table.insert(names, name)
@@ -344,13 +411,20 @@ runFn(function()
 		},
 	})
 
-	---Function to strafe around a target player
+	---Function to strafe around a target player (call it every heartbeat)
 	---@param targetPlayer Player
 	---@param lookAtTarget boolean
-	---@param strafeDistance number
+	---@param strafeDistance number The distance in studs
 	---@param speed number
 	local function strafeAroundPlayer(targetPlayer, lookAtTarget, strafeDistance, speed)
+		if not targetPlayer then
+			targetStrafe.strafing = false
+			targetStrafe.target = nil
+		end
 		local targetCharacter = targetPlayer.Character
+		if not targetCharacter then
+			return
+		end
 		if type(lookAtTarget) ~= "boolean" then
 			lookAtTarget = false
 		end
@@ -359,9 +433,6 @@ runFn(function()
 		end
 		if not speed then
 			speed = 0
-		end
-		if not targetCharacter then
-			return
 		end
 
 		local targetPosition = targetCharacter:GetPivot()
@@ -385,6 +456,8 @@ runFn(function()
 		if #args < 1 then
 			targetStrafe.strafing = false
 			targetStrafe.target = nil
+			Betabot.Connections.TargetStrafe_Heartbeat:Disconnect()
+			Betabot.Connections.TargetStrafe_Heartbeat = nil
 			return
 		end
 		if type(args[1]) ~= "string" then
@@ -405,10 +478,18 @@ runFn(function()
 		end
 		targetStrafe.target = target
 		targetStrafe.strafing = true
-		while targetStrafe.strafing do
+		Betabot.Connections.TargetStrafe_Heartbeat = RunService.Heartbeat:Connect(function()
+			if not targetStrafe.target then
+				Betabot.Connections.TargetStrafe_Heartbeat:Disconnect()
+				targetStrafe.target = nil
+				targetStrafe.strafing = false
+			end
 			strafeAroundPlayer(targetStrafe.target, args[2], args[3], args[4])
-			task.wait()
-		end
+		end)
+		-- while targetStrafe.strafing do
+		-- 	strafeAroundPlayer(targetStrafe.target, args[2], args[3], args[4])
+		-- 	task.wait()
+		-- end
 	end
 end)
 
@@ -459,17 +540,18 @@ runFn(function()
 	})
 end)
 
--- Bot info command (don't remove)
+-- credits command (don't remove)
 
-Betabot.API.CommandAPI.CreateCommand("botInfo", {
+Betabot.API.CommandAPI.CreateCommand("credits", {
 	callback = function()
 		Betabot.Utils.Chat("Bot is open source and made by @RealPacket on GitHub, licensed under the GPL-3.0 license.")
 		Betabot.Utils.Chat("Source Code is available at: RealPacket/My-Scripts/Universal Scripts/Bot (on GitHub)")
+		Betabot.Utils.Chat("Proudly not made in China.")
 	end,
 })
 
 runFn(function()
-	local function getVectorsFromN(n)
+	local function getVectorsFromN(n: number)
 		local camera = workspace.CurrentCamera
 		local forward = camera.CFrame.LookVector * n
 		local backward = -camera.CFrame.LookVector * n
@@ -481,81 +563,292 @@ runFn(function()
 			right = right,
 			left = left,
 		}
-		-- local forward = Vector3.new(0, 0, -n)
-		-- local backward = Vector3.new(0, 0, n)
-		-- local right = Vector3.new(n)
-		-- local left = Vector3.new(-n)
-		-- return {
-		-- 	forward = forward,
-		-- 	backward = backward,
-		-- 	right = right,
-		-- 	left = left,
-		-- }
 	end
-
-	local function parse(src)
-		local calls = src:split("(") -- opening
-		local AST = {}
-		for i, call in calls do
-			local args = {}
-			if call:sub(call:len()) == ")" then
-				continue
-			end
-			local argStr = calls[i + 1]
-			call = call:gsub(" ", ""):gsub("\t", "")
-			if argStr:find(",") then
-				for _, arg in argStr:split(",") do
-					if arg:sub(arg:len()) == ")" then
-						arg = arg:sub(1, arg:len() - 1)
-					end
-					if tonumber(arg) then
-						table.insert(args, tonumber(arg))
-					else
-						table.insert(args, arg)
-					end
-				end
-			else
-				local arg = argStr:sub(1, argStr:len() - 1)
-				if tonumber(arg) then
-					table.insert(args, tonumber(arg))
-				else
-					table.insert(args, arg)
-				end
-			end
-			table.insert(AST, {
-				targetName = call,
-				args = args,
-			})
-		end
-		return AST
-	end
+	-- local function parse(src)
+	-- 	local calls = src:split("(") -- opening
+	-- 	local AST = {}
+	-- 	for i, call in calls do
+	-- 		local args = {}
+	-- 		if call:sub(call:len()) == ")" then
+	-- 			continue
+	-- 		end
+	-- 		local argStr = calls[i + 1]
+	-- 		-- call = call:gsub(" ", ""):gsub("\t", "")
+	-- 		if argStr:find(",") then
+	-- 			for _, arg in argStr:split(",") do
+	-- 				if arg:sub(arg:len()) == ")" then
+	-- 					arg = arg:sub(1, arg:len() - 1)
+	-- 				end
+	-- 				if tonumber(arg) then
+	-- 					table.insert(args, tonumber(arg))
+	-- 				else
+	-- 					table.insert(args, arg)
+	-- 				end
+	-- 			end
+	-- 		else
+	-- 			local arg = argStr:sub(1, argStr:len() - 1)
+	-- 			if tonumber(arg) then
+	-- 				table.insert(args, tonumber(arg))
+	-- 			else
+	-- 				table.insert(args, arg)
+	-- 			end
+	-- 		end
+	-- 		table.insert(AST, {
+	-- 			targetName = call,
+	-- 			args = args,
+	-- 		})
+	-- 	end
+	-- 	return AST
+	-- end
 
 	Betabot.API.CommandAPI.CreateCommand("move", {
-		description = "moves the bot in a direction. example: move forward(1) strafe(right, 4)",
+		description = "moves the bot in a direction. example: move forward 1 right 4",
 		callback = function(_, args)
-			-- example: forward(1) backward(2) strafe(right, 4) jump()
-			local str = args[1]
-			table.remove(args, 1)
-			for _, part in args do
-				str ..= " " .. part
-			end
-			local parsed = parse(str)
-			for _, block in parsed do
-				if block.targetName ~= "strafe" then
-					local vec = getVectorsFromN(block.args[1])[block.targetName]
-					if not vec then
-						return Betabot.Utils.Chat(('Unknown direction "%s"!'):format(block.targetName))
-					end
-					Character.Humanoid:MoveTo(Character:GetPivot().Position + vec)
-				else
-					local dir = block.args[1]
-					local vec = getVectorsFromN(block.args[2])[dir]
-					if not vec then
-						return Betabot.Utils.Chat(('Unknown direction "%s"!'):format(dir))
-					end
-					Character.Humanoid:MoveTo(Character:GetPivot().Position + vec)
+			-- increment by 2
+			for i = 1, #args, 2 do
+				local arg = args[i + 1]
+				local direction = args[i]
+				local vec = getVectorsFromN(arg)[direction]
+				if not vec then
+					return Betabot.Utils.Chat(('Unknown direction "%s"!'):format(direction))
 				end
+				Character.Humanoid:MoveTo(Character:GetPivot().Position + vec)
 			end
+			-- local str = args[1]
+			-- table.remove(args, 1)
+			-- for _, part in args do
+			-- 	str ..= "\n" .. part
+			-- end
+			-- local parsed = parse(str)
+			-- for _, block in parsed do
+			-- 	if block.targetName ~= "strafe" then
+			-- 		local vec = getVectorsFromN(block.args[1])[block.targetName]
+			-- 		if not vec then
+			-- 			return Betabot.Utils.Chat(('Unknown direction "%s"!'):format(block.targetName))
+			-- 		end
+			-- 		Character.Humanoid:MoveTo(Character:GetPivot().Position + vec)
+			-- 	else
+			-- 		local dir = block.args[1]
+			-- 		local vec = getVectorsFromN(block.args[2])[dir]
+			-- 		if not vec then
+			-- 			return Betabot.Utils.Chat(('Unknown direction "%s"!'):format(dir))
+			-- 		end
+			-- 		Character.Humanoid:MoveTo(Character:GetPivot().Position + vec)
+			-- 	end
+			-- end
 		end,
 	})
 end)
+
+Betabot.API.CommandAPI.CreateCommand("reload", {
+	description = "reloads the bot",
+	callback = function()
+		getgenv().__destroy_bot(true)
+		loadstring(readfile("Betabot/Bot.lua"), "Bot.lua")()
+	end,
+})
+
+-- [[  Typings. (only exported stuff)  ]] --
+
+type Events = {
+	--- Gets fired once the bot gets unloaded
+	OnDestroy: SignalInstance,
+	--- Fired when the bot is Loaded
+	OnLoad: SignalInstance,
+	[string]: SignalInstance,
+}
+
+type Betabot = {
+	--- Some utilities that you'll probably use some time
+	Utils: Utils,
+	API: APIs,
+	Commands: commands,
+	Logs: logs,
+	Config: config,
+	Events: Events,
+	Loaded: boolean,
+	--- A table containing connections.
+	Connections: { [string]: Connection },
+}
+
+type config = {
+	--- A set of readonly message formats that you can set.
+	MessageFormats: { [string]: string },
+	debug: boolean,
+	debugFn: (...any) -> (),
+	prefix: string,
+	whitelistEnabled: boolean,
+}
+
+type autoConvertSettingsOption = {
+	--- A list of types that shouldn't be automatically converted.
+	disabledTypes: { "number" | "string" | "boolean" },
+	--- A list of types that should be converted (e.x. Player (it's not enabled by default))
+	enabledTypes: { "Player" },
+}
+
+type commandOptions = {
+	autoConvert: boolean?,
+	autoConvertSettings: autoConvertSettingsOption,
+	extraRawArgsParam: boolean?,
+}?
+
+type command = {
+	--- An optional description of what the command does.
+	description: string?,
+	--- Some options that you can toggle on and off.
+	options: commandOptions,
+	callback: (
+		---player that ran the command
+		user: Player,
+		---arguments (only strings if options.autoConvert is false)
+		args: { string | number | boolean },
+		---only if options.extraRawArgsParam is set to true
+		rawArgs: { string }?
+	) -> (),
+}
+
+type commands = { [string]: command }
+
+type ChatLog = {
+	Author: Player,
+	Message: string,
+	Recipient: Player,
+	timeStamp: DateTime,
+}
+
+type ConsoleLogs = {
+	Errors: { string },
+	Warnings: { string },
+	Logs: { string },
+}
+
+type GameLogs = {
+	Chat: { ChatLog },
+}
+
+type CommandLog = {
+	args: {},
+	command: command,
+	time: DateTime,
+}
+
+type BotLogs = {
+	Commands: { CommandLog },
+}
+
+type logs = {
+	Console: ConsoleLogs,
+	Game: GameLogs,
+	Bot: BotLogs,
+}
+
+type GithubAPI = {
+	---Fetches content from the specified path
+	---@example Commands/DefaultCommands.lua
+	Request: (path: string) -> string,
+}
+
+type APIs = {
+	--- An API which allows you to create certain permissions and revoke/grant it from/to players.
+	PermissionsAPI: PermissionsAPI,
+	--- An API which allows you to create new commands.
+	CommandAPI: CommandAPI,
+	--- An API which allows you to interact with the bot's github folder
+	GithubAPI: GithubAPI,
+}
+
+type CommandAPI = {
+	CreateCommand: (name: string, cmd: command) -> command,
+}
+
+type Permission = {
+	--- Gets fired once the permission gets granted to a player.
+	OnGrantedToPlayer: SignalInstance,
+	--- Gets fired once the permission gets revoked from a player.
+	OnRevokedFromPlayer: SignalInstance,
+	--[=[
+		Grants this permission to a player, fires the OnGrantedToPlayer event.
+	]=]
+	GrantToPlayer: (self: Permission, target: Player) -> Player,
+	--[=[
+		Revokes this permission from a player, fires the OnRevokedFromPlayer event.
+	]=]
+	RevokeFromPlayer: (self: Permission, target: Player) -> (),
+	--[=[
+		Returns true if the player specified has been granted this permission.
+	]=]
+	IsGrantedToPlayer: (self: Permission, player: Player) -> boolean,
+}
+
+type PermissionsAPI = {
+	--- Gets fired once a permission is added.
+	PermissionAdded: SignalInstance,
+	--- Gets fired once a permission is about to be removed.
+	PermissionRemoving: SignalInstance,
+	--- Gets a permission with the specified
+	--- If a permission doesn't exist, an error gets thrown.
+	GetPermission: (self: PermissionsAPI, name: string) -> Permission,
+	--- Creates/Adds a permission with the specified
+	--- If the permission specified was
+	-- created before this call of CreatePermission,
+	--- A warning will be emitted.
+	CreatePermission: (self: PermissionsAPI, name: string) -> Permission,
+	--- A list of permissions
+	Permissions: { [string]: Permission },
+}
+
+--[=[
+   An object that represents a connection that is connected to a signal.
+--]=]
+type Connection = {
+	connected: boolean,
+	target: SignalInstance,
+	--- Disconnects the connection from the remote event that it was connected to.
+	Disconnect: (self: Connection) -> (),
+}
+
+--[=[
+	An instance of the Signal class.
+]=]
+type SignalInstance = {
+	--- Connects to this signal and returns the connection object representing this connection.
+	Connect: (self: SignalInstance, callback: (...any) -> ()) -> Connection,
+	--- Fires all connections connected to this signal instance.
+	Fire: (self: SignalInstance, ...any) -> (),
+	--[=[
+        Creates a connection
+	    that immediately calls the callback
+	    and disconnects from the signal as soon as the connection is triggered,
+	    only allowing the callback to be executed once.
+	    Returns the connection object representing the connection.
+    ]=]
+	Once: (self: SignalInstance, callback: (...any) -> ()) -> Connection,
+	--- Yields the current thread until the signal is fired, and returns the arguments that were fired.
+	Wait: (self: SignalInstance) -> ...any,
+	--- Disconnects all connections connected to the current signal.
+	Destroy: (self: SignalInstance) -> (),
+}
+
+--[==[
+	A class that provides a way for user-defined functions, called listeners,
+	to call when something happens in the game.
+	When an event happens, the Signal fires and calls any listeners that are connected to it.
+	An Signal may also pass arguments to each listener to provide extra information about the event.
+	@class
+]==]
+type SignalUtil = {
+	new: (name: string?) -> SignalInstance,
+	constructor: (self: SignalInstance, name: string?) -> (),
+}
+
+--[==[
+	Some utilities that you can use in your command scripts.
+]==]
+type Utils = {
+	GetPlayerByName: (name: string, caseInsensitive: boolean?, requestingPlayer: Player?) -> Player?,
+	Chat: (message: string, broadcast: boolean, target: Player) -> TextChatMessage?,
+	Signal: SignalUtil,
+}
+
+-- [[  End Typings.  ]] --
