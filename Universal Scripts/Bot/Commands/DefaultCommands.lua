@@ -545,7 +545,7 @@ end)
 
 Betabot.API.CommandAPI.CreateCommand("credits", {
 	callback = function()
-		Betabot.Utils.Chat("Bot is open source and made by @RealPacket on GitHub, licensed under the GPL-3.0 license.")
+		Betabot.Utils.Chat("Bot is open source and made by @RealPacket on GitHub. Licensed under the AGPL license.")
 		Betabot.Utils.Chat("Source Code is available at: RealPacket/My-Scripts/Universal Scripts/Bot (on GitHub)")
 		Betabot.Utils.Chat("Proudly not made in China.")
 	end,
@@ -640,6 +640,16 @@ runFn(function()
 		end,
 	})
 end)
+
+Betabot.API.CommandAPI.CreateCommand("sit", {
+	description = "Sit down right now!",
+	-- options = {
+	-- 	autoConvertArgs = true
+	-- },
+	callback = function()
+		Character.Humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+	end
+})
 
 Betabot.API.CommandAPI.CreateCommand("reload", {
 	description = "reloads the bot",
