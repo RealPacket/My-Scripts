@@ -435,6 +435,11 @@ runFn(function()
 
 		local targetPosition = targetCharacter:GetPivot()
 		local extents = Character:GetExtentsSize() * Character:GetScale()
+		local groundParams = RaycastParams.new()
+		local direction = -(extents + (Vector3.one * 4))
+		groundParams.RespectCanCollide = true
+		groundParams.FilterType = Enum.RaycastFilterType.Exclude
+		groundParams.FilterDescendantsInstances = { Character }
 
 		-- Calculate the position to move to
 		local angle = speed ~= 0 and math.rad(tick() * 360 / speed) or math.rad(tick() * 360)
@@ -447,8 +452,8 @@ runFn(function()
 				and CFrame.lookAt(pos, Vector3.new(targetPosition.X, Character:GetPivot().Y, targetPosition.Z))
 			or CFrame.new(pos) * CFrame.Angles(Character:GetPivot():ToEulerAnglesXYZ())
 		-- try to not teleport in air so it doesn't fall
-		local result = workspace:Raycast(newPosition.Position, -(extents + (Vector3.one * 4)))
-		print("(final update probably)", result)
+		local result = workspace:Raycast(newPosition.Position, direction, groundParams)
+		print("result=", result)
 		-- Move to the new position
 		Character:PivotTo(newPosition)
 	end
