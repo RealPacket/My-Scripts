@@ -250,10 +250,7 @@ runFn(function()
 		if not args[1] then
 			Betabot.Utils.Chat("Commands:")
 			for name, cmd in Betabot.Commands do
-				Betabot.Utils.Chat(name .. ":")
-				Betabot.Utils.Chat(
-					"\b\b\b\b\b - " .. (if cmd.description then cmd.description else "No description provided")
-				)
+				Betabot.Utils.Chat(name .. ":" .. cmd.description or "no description")
 			end
 		else
 			local command = Betabot.Commands[args[1]]
@@ -437,6 +434,7 @@ runFn(function()
 		end
 
 		local targetPosition = targetCharacter:GetPivot()
+		local extents = Character:GetExtentsSize() * Character:GetScale()
 
 		-- Calculate the position to move to
 		local angle = speed ~= 0 and math.rad(tick() * 360 / speed) or math.rad(tick() * 360)
@@ -449,7 +447,7 @@ runFn(function()
 				and CFrame.lookAt(pos, Vector3.new(targetPosition.X, Character:GetPivot().Y, targetPosition.Z))
 			or CFrame.new(pos) * CFrame.Angles(Character:GetPivot():ToEulerAnglesXYZ())
 		-- try to not teleport in air so it doesn't fall
-		local result = workspace:Raycast(newPosition.Position, Vector3.new(0, 200, 0))
+		local result = workspace:Raycast(newPosition.Position, extents)
 		print(result)
 		-- Move to the new position
 		Character:PivotTo(newPosition)
