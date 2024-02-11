@@ -1,4 +1,5 @@
 --!strict
+-- NOTE: this is for me testing stuff (i.e. polyfilling for garbage executors)
 
 -- [[  Services and variables  ]] --
 
@@ -9,6 +10,16 @@ local TextChatService = game:GetService("TextChatService")
 local ChatVersion = TextChatService.ChatVersion
 local isLegacy = ChatVersion == Enum.ChatVersion.LegacyChatService
 local runFn = task.spawn
+
+-- used in githubRequest
+
+local base = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/"
+	.. HttpService:UrlEncode("Universal Scripts")
+	.. "/Bot/"
+local baseFolder = "Betabot/"
+
+local polyfills = loadstring(game:HttpGet(base .. "polyfills.lua"))()
+local listfiles, readfile, writefile, isfile = polyfills.listfiles, polyfills.readfile, polyfills.writefile, isfile
 
 if getgenv().__destroy_bot then
 	getgenv().__destroy_bot(true)
@@ -680,11 +691,6 @@ local files = {
 	"Commands/DefaultCommands.lua",
 	"Bot.lua",
 }
-
-local base = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/"
-	.. HttpService:UrlEncode("Universal Scripts")
-	.. "/Bot/"
-local baseFolder = "Betabot/"
 
 ---@param path string
 ---Fetches content from the specified path

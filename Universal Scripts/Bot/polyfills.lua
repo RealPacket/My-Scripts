@@ -5,29 +5,64 @@ local polyfills = {}
 
 -- file API
 do
-	local files = {}
+	local fs = {}
+	-- list files convenience
+	local fsData = {
+		filePaths = {},
+		folderPaths = {},
+	}
+	-- local function getFileName(path: string)
+	-- 	local splitted = path:split("/")
+	-- 	return splitted[#splitted]
+	-- end
+	local function getFolderPath(path: string)
+		local splitted = path:split("/")
+		return table.concat(splitted, "/", 1, #splitted - 1)
+	end
 	function polyfills.readfile(name: string)
 		local suc, res = pcall(readfile, name)
 		if not suc then
 			warn("[POLYFILLS] ORIGINAL READ FILE CALL FAILED! REVERTING TO POLYFILL FILES.")
 			print("[POLYFILLS]  Error:", res)
-			if not files[name] then
+			if not fs[name] then
 				error(('File "%s" not found in file table!'):format(name))
 			end
-			return files[name]
+			return fs[name]
 		end
 	end
-	function polyfills.writefile(name: string, content: string)
+	function polyfills.writefile(path: string, content: string)
 		-- try to call original writefile with protection,
-		local suc, res = pcall(writefile, name, content)
+		local suc, res = pcall(writefile, path, content)
 		if not suc then
-			warn("[POLYFILLS] ORIGINAL WRITEFILE FAILED! REVERTING TO POLYFILL FILES.")
-			files[name] = content
+			warn("[POLYFILLS] ORIGINAL WRITE FILE FAILED! REVERTING TO POLYFILL FS.")
+			fs[path] = { type = "file", content = content }
+			table.insert(fsData.filePaths, path)
+			local foldPath = getFolderPath(path)
+			local fold = fsData.folderPaths[foldPath]
+			if not table.find(fold.filePaths, path) then
+				print("insert file path")
+				table.insert(fold.filePaths, path)
+				fsData.folderPaths[foldPath] = fold
+			end
 			return
 		end
 		return res
 	end
-	-- TODO: listfiles
+	function polyfills.makefolder(path: string)
+		fsData[path] = {
+			type = "folder",
+			filePaths = {}, -- also list files convenience
+		}
+		table.insert(fsData.folderPaths, path)
+	end
+	function polyfills.listfiles(path: string)
+		local suc, res = pcall(listfiles, path)
+		if not suc then
+			warn("[POLYFILLS] ORIGINAL LIST FILES FAILED! REVERTING TO POLYFILL FS.")
+			return fsData.folderPaths[path].filePaths
+		end
+		return res
+	end
 end
 
 return polyfills
