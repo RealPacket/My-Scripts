@@ -53,6 +53,7 @@
     "isfile",
     "isfolder",
     "listfiles",
+    "loadstring",
     "makefolder",
     "readfile",
     "writefile"
