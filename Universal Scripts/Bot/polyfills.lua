@@ -55,14 +55,12 @@ do
 		fs[path] = { type = "file", content = content }
 		table.insert(fsData.filePaths, path)
 		local foldPath = getFolderPath(path)
-		local fold = fsData.folderPaths[foldPath]
-		print("[POLYFILLS] debug:", fsData.folderPaths, #fsData.folderPaths)
+		local fold = fsData[foldPath]
 		print("[POLYFILLS] folder path:", foldPath)
 		print("[POLYFILLS] folder:", fold)
 		if not fold then
 			print(("[POLYFILLS] auto-created folder: %s"):format(foldPath))
 			polyfills.makefolder(foldPath)
-			fold = fsData.folderPaths[foldPath]
 			print("[POLYFILLS] new folder:", fold)
 		end
 		if not table.find(fold.filePaths, path) then
@@ -74,6 +72,10 @@ do
 	end
 	function polyfills.makefolder(path: string)
 		fs[path] = { type = "folder" }
+		fsData[path] = {
+			type = "folder",
+			filePaths = {},
+		}
 		table.insert(fsData.folderPaths, path)
 	end
 	function polyfills.listfiles(path: string)
@@ -81,7 +83,7 @@ do
 		if not suc then
 			warn("[POLYFILLS] ORIGINAL LIST FILES FAILED! REVERTING TO POLYFILL FS.")
 			print("[POLYFILLS]  Error:", res)
-			return fsData.folderPaths[path].filePaths
+			return fsData[path].filePaths
 		end
 		return res
 	end
