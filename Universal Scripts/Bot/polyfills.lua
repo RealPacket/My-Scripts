@@ -28,7 +28,7 @@ do
 			if not fs[name] then
 				error(('File "%s" not found in file table!'):format(name))
 			end
-			return fs[name]
+			return fs[name].content
 		end
 	end
 	function polyfills.isfolder(path: string)
@@ -59,7 +59,7 @@ do
 		print("[POLYFILLS] folder path:", foldPath)
 		print("[POLYFILLS] folder:", fold)
 		if not fold then
-			print("[POLYFILLS] created folder")
+			print(("[POLYFILLS] auto-created folder: %s"):format(foldPath))
 			polyfills.makefolder(foldPath)
 			fold = fsData.folderPaths[foldPath]
 		end
@@ -71,6 +71,7 @@ do
 		return suc and res
 	end
 	function polyfills.makefolder(path: string)
+		fs[path] = { type = "folder", }
 		fsData[path] = {
 			type = "folder",
 			filePaths = {}, -- also list files convenience
