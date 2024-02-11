@@ -447,7 +447,7 @@ runFn(function()
 				and CFrame.lookAt(pos, Vector3.new(targetPosition.X, Character:GetPivot().Y, targetPosition.Z))
 			or CFrame.new(pos) * CFrame.Angles(Character:GetPivot():ToEulerAnglesXYZ())
 		-- try to not teleport in air so it doesn't fall
-		local result = workspace:Raycast(newPosition.Position, extents)
+		local result = workspace:Raycast(newPosition.Position, extents + (Vector3.one * 4))
 		print("(new update)", result)
 		-- Move to the new position
 		Character:PivotTo(newPosition)
