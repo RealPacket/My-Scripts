@@ -46,7 +46,9 @@ Betabot.API.CommandAPI.CreateCommand("autoconverttesting", {
 	callback = function(_, args, rawArgs)
 		local chatString = "Args: "
 		for i, arg in args do
-			chatString ..= tostring(arg) .. " / raw: " .. rawArgs[i] .. " (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
+			local raw = rawArgs[i]
+			local str = tostring(arg)
+			chatString ..= str .. raw ~= str and " / raw: " .. raw or "" .. " (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
 		end
 		Betabot.Utils.Chat(chatString)
 	end,
