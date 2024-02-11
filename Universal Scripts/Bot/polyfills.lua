@@ -33,20 +33,16 @@ do
 	function polyfills.writefile(path: string, content: string)
 		-- try to call original writefile with protection,
 		local suc, res = pcall(writefile, path, content)
-		if not suc then
-			warn("[POLYFILLS] ORIGINAL WRITE FILE FAILED! REVERTING TO POLYFILL FS.")
-			fs[path] = { type = "file", content = content }
-			table.insert(fsData.filePaths, path)
-			local foldPath = getFolderPath(path)
-			local fold = fsData.folderPaths[foldPath]
-			if not table.find(fold.filePaths, path) then
-				print("insert file path")
-				table.insert(fold.filePaths, path)
-				fsData.folderPaths[foldPath] = fold
-			end
-			return
+		fs[path] = { type = "file", content = content }
+		table.insert(fsData.filePaths, path)
+		local foldPath = getFolderPath(path)
+		local fold = fsData.folderPaths[foldPath]
+		if not table.find(fold.filePaths, path) then
+			print("insert file path")
+			table.insert(fold.filePaths, path)
+			fsData.folderPaths[foldPath] = fold
 		end
-		return res
+		return suc and res
 	end
 	function polyfills.makefolder(path: string)
 		fsData[path] = {
