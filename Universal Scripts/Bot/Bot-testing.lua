@@ -881,6 +881,7 @@ local function handler(msg: string, player: Player)
 				["false"] = false,
 				["true"] = true,
 			}
+
 			if boolMap[arg] ~= nil then
 				args[i] = boolMap[arg]
 				continue

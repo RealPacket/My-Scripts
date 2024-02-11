@@ -2,13 +2,19 @@
 
 -- [[  Services and variables  ]] --
 
+--#region variables
+--#region services
+
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
+--#endregion
+
 local ChatVersion = TextChatService.ChatVersion
 local isLegacy = ChatVersion == Enum.ChatVersion.LegacyChatService
 local runFn = task.spawn
+--#endregion
 
 if getgenv().__destroy_bot then
 	getgenv().__destroy_bot(true)
@@ -16,6 +22,7 @@ if getgenv().__destroy_bot then
 end
 
 -- [[  Typings. (only exported stuff)  ]] --
+--#region Typings. (only exported stuff)
 
 type Events = {
 	--- Gets fired once the bot gets unloaded
@@ -223,8 +230,10 @@ type Utils = {
 }
 
 -- [[  End Typings.  ]] --
+--#endregion
 
 -- [[  Utils.  ]] --
+--#region Utils
 
 -- Simple signal util, made because roblox bindable events do the monkey with tables
 -- (they re-create tables when passing into the callback :skull:)
@@ -351,9 +360,11 @@ do
 	end
 end
 
+--#endregion
 -- [[  End Utils.  ]] --
 
 -- [[  Initialize Betabot (not as a global yet), APIs, Utils, and other things. (PART 1)  ]] --
+--#region Initialize Betabot (not as a global yet), APIs, Utils, and other things. (PART 1)
 
 local Betabot: Betabot = {
 	Loaded = false,
@@ -527,43 +538,6 @@ local function canPlayerUseCommand(player: Player)
 end
 
 runFn(function()
-	-- later!
-	-- type info = {
-	-- 	-- selector: string,
-	-- 	args: { string },
-	-- 	flags: { [string]: boolean },
-	-- 	requesting: Player?,
-	-- }
-	-- type basicSelectorHandler = (info) -> Player?
-	-- type advancedSelectorHandler = {
-	-- 	callback: basicSelectorHandler,
-	-- 	aliases: { string }?,
-	-- 	getFlags: (selector: string) -> { [string]: boolean },
-	-- }
-	-- type selectorHandler = advancedSelectorHandler | basicSelectorHandler
-	-- type selectorHandlers = { [string]: selectorHandler }
-	-- local selectorHandlers: selectorHandlers = {
-	-- 	self = {
-	-- 		callback = function(info)
-	-- 			return info.requesting
-	-- 		end,
-	-- 		aliases = { "s", "me" },
-	-- 	},
-	-- 	display = {
-	-- 		callback = function(info)
-	-- 			for _, player in Players:GetPlayers() do
-	-- 				if player.DisplayName == info.args[1] then
-	-- 					return player
-	-- 				end
-	-- 			end
-	-- 		end,
-	-- 		aliases = { "displayname" },
-	-- 	},
-	-- 	name = {
-	-- 		callback = function(info) end,
-	-- 	},
-	-- 	id = {},
-	-- }
 	local function GetPlayerBySelector(name: string, caseInsensitive: boolean?, requestingPlayer: Player?): Player?
 		if not caseInsensitive then
 			caseInsensitive = true
@@ -727,9 +701,11 @@ end
 
 Betabot.API.CommandAPI.CreateCommand = createCommand
 
+--#endregion
 -- [[  END Initialize Betabot (not as a global yet), APIs, Utils, and other things. (PART 1)  ]] --
 
 -- [[  Initialize Betabot (not as a global yet), APIs, Utils, and other things. (PART 2)  ]] --
+--#region Initialize Betabot (not as a global yet), APIs, Utils, and other things. (PART 2)
 
 do
 	---@class Permission
@@ -825,8 +801,10 @@ do
 		return permission
 	end
 end
+--#endregion
 
--- [[  Initialize Betabot, APIs, Utils, and other things. (PART 2)  ]] --
+-- [[  Initialize Betabot, APIs, Utils, and other things. (PART 3)  ]] --
+--#region Initialize Betabot, APIs, Utils, and other things. (PART 3)
 
 ---@param file string
 local function runCommandScript(file)
@@ -1009,3 +987,4 @@ Betabot.Loaded = true
 Betabot.Events.OnLoad:Fire()
 
 -- [[  END Start Message  ]] --
+--#endregion

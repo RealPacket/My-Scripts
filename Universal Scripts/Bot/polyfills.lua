@@ -61,7 +61,7 @@ do
 		if not fold then
 			print(("[POLYFILLS] auto-created folder: %s"):format(foldPath))
 			polyfills.makefolder(foldPath)
-			fold = fsData[path]
+			fold = fsData[foldPath]
 			print("[POLYFILLS] new folder:", fold)
 		end
 		if not table.find(fold.filePaths, path) then

@@ -6,7 +6,6 @@ local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local UserGameSettings = UserSettings():GetService("UserGameSettings")
 
 local runFn = task.spawn
-
 local Betabot: Betabot
 
 -- in an actual exploit environment.
@@ -155,7 +154,7 @@ runFn(function()
 		local currentState = states[state]
 		UserInputService.MouseIcon = currentState.mouseIcon
 		if state then
-			conn = LocalPlayer.CharacterAdded:Connect(function(c)
+			conn = LocalPlayer.CharacterAdded:Connect(function()
 				Character:WaitForChild("Humanoid").CameraOffset = currentState.cameraOffset
 			end)
 			Betabot.Connections.ShiftLock_CharacterAdded = conn
@@ -251,7 +250,7 @@ runFn(function()
 			for name, cmd in Betabot.Commands do
 				Betabot.Utils.Chat(name .. ":")
 				Betabot.Utils.Chat(
-					"_     - " .. (if cmd.description then cmd.description else "No description provided")
+					"\b\b\b\b\b - " .. (if cmd.description then cmd.description else "No description provided")
 				)
 			end
 		else
