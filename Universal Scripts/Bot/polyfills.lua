@@ -37,8 +37,10 @@ do
 		table.insert(fsData.filePaths, path)
 		local foldPath = getFolderPath(path)
 		local fold = fsData.folderPaths[foldPath]
+		print("[POLYFILLS] folder path:", foldPath)
+		print("[POLYFILLS] folder:", fold)
 		if not table.find(fold.filePaths, path) then
-			print("insert file path")
+			print("[POLYFILLS] insert file path")
 			table.insert(fold.filePaths, path)
 			fsData.folderPaths[foldPath] = fold
 		end
