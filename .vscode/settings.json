@@ -49,5 +49,12 @@
     "worldtoviewportpoint",
     "Betabot"
   ],
-  "cSpell.words": ["listfiles", "makefolder", "readfile", "writefile"]
+  "cSpell.words": [
+    "isfile",
+    "isfolder",
+    "listfiles",
+    "makefolder",
+    "readfile",
+    "writefile"
+  ]
 }

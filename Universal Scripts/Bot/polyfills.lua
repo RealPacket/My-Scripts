@@ -31,11 +31,28 @@ do
 			return fs[name]
 		end
 	end
+	function polyfills.isfolder(path: string)
+		local suc, res = pcall(isfolder, path)
+		if not suc then
+			warn("[POLYFILLS] ORIGINAL ISFOLDER CALL FAILED! REVERTING TO POLYFILL FILES.")
+			print("[POLYFILLS]  Error:", res)
+			return table.find(fsData.folderPaths, path) ~= nil
+		end
+		return res
+	end
+	function polyfills.isfile(path: string)
+		local suc, res = pcall(isfile, path)
+		if not suc then
+			warn("[POLYFILLS] ORIGINAL ISFILE CALL FAILED! REVERTING TO POLYFILL FILES.")
+			print("[POLYFILLS]  Error:", res)
+			return table.find(fsData.filePaths, path) ~= nil
+		end
+		return res
+	end
 	function polyfills.writefile(path: string, content: string)
 		-- try to call original writefile with protection,
 		local suc, res = pcall(writefile, path, content)
 		fs[path] = { type = "file", content = content }
-		print("[POLYFILLS] fsData.filePaths =", fsData.filePaths)
 		table.insert(fsData.filePaths, path)
 		local foldPath = getFolderPath(path)
 		local fold = fsData.folderPaths[foldPath]
@@ -62,6 +79,7 @@ do
 		local suc, res = pcall(listfiles, path)
 		if not suc then
 			warn("[POLYFILLS] ORIGINAL LIST FILES FAILED! REVERTING TO POLYFILL FS.")
+			print("[POLYFILLS]  Error:", res)
 			return fsData.folderPaths[path].filePaths
 		end
 		return res
