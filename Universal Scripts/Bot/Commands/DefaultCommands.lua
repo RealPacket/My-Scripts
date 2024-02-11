@@ -436,7 +436,7 @@ runFn(function()
 		local targetPosition = targetCharacter:GetPivot()
 		local extents = Character:GetExtentsSize() * Character:GetScale()
 		local groundParams = RaycastParams.new()
-		local direction = -(extents + (Vector3.one * 4))
+		local direction = -(extents + (Vector3.one * 4) + Character.Humanoid.HipHeight)
 		groundParams.RespectCanCollide = true
 		groundParams.FilterType = Enum.RaycastFilterType.Exclude
 		groundParams.FilterDescendantsInstances = { Character }
