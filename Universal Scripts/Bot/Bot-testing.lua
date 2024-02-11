@@ -546,43 +546,6 @@ local function canPlayerUseCommand(player: Player)
 end
 
 runFn(function()
-	-- later!
-	-- type info = {
-	-- 	-- selector: string,
-	-- 	args: { string },
-	-- 	flags: { [string]: boolean },
-	-- 	requesting: Player?,
-	-- }
-	-- type basicSelectorHandler = (info) -> Player?
-	-- type advancedSelectorHandler = {
-	-- 	callback: basicSelectorHandler,
-	-- 	aliases: { string }?,
-	-- 	getFlags: (selector: string) -> { [string]: boolean },
-	-- }
-	-- type selectorHandler = advancedSelectorHandler | basicSelectorHandler
-	-- type selectorHandlers = { [string]: selectorHandler }
-	-- local selectorHandlers: selectorHandlers = {
-	-- 	self = {
-	-- 		callback = function(info)
-	-- 			return info.requesting
-	-- 		end,
-	-- 		aliases = { "s", "me" },
-	-- 	},
-	-- 	display = {
-	-- 		callback = function(info)
-	-- 			for _, player in Players:GetPlayers() do
-	-- 				if player.DisplayName == info.args[1] then
-	-- 					return player
-	-- 				end
-	-- 			end
-	-- 		end,
-	-- 		aliases = { "displayname" },
-	-- 	},
-	-- 	name = {
-	-- 		callback = function(info) end,
-	-- 	},
-	-- 	id = {},
-	-- }
 	local function GetPlayerBySelector(name: string, caseInsensitive: boolean?, requestingPlayer: Player?): Player?
 		if not caseInsensitive then
 			caseInsensitive = true
