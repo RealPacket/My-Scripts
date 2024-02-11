@@ -62,6 +62,7 @@ do
 			print(("[POLYFILLS] auto-created folder: %s"):format(foldPath))
 			polyfills.makefolder(foldPath)
 			fold = fsData.folderPaths[foldPath]
+			print("[POLYFILLS] folder:", fold)
 		end
 		if not table.find(fold.filePaths, path) then
 			print("[POLYFILLS] insert file path")
@@ -71,7 +72,7 @@ do
 		return suc and res
 	end
 	function polyfills.makefolder(path: string)
-		fs[path] = { type = "folder", }
+		fs[path] = { type = "folder" }
 		fsData[path] = {
 			type = "folder",
 			filePaths = {}, -- also list files convenience
