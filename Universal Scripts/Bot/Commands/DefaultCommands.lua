@@ -641,6 +641,14 @@ runFn(function()
 	})
 end)
 
+Betabot.API.CommandAPI.CreateCommand("stop", {
+	description = "stops the bot",
+	callback = function()
+		Betabot.Utils.Chat("Goodbye!")
+		getgenv().__destroy_bot()
+	end
+})
+
 Betabot.API.CommandAPI.CreateCommand("sit", {
 	description = "Sit down right now!",
 	-- options = {
