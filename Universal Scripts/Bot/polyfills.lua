@@ -40,7 +40,7 @@ do
 		print("[POLYFILLS] folder path:", foldPath)
 		print("[POLYFILLS] folder:", fold)
 		if not fold then
-			error("Folder specified isn't stored in the FS table")
+			error(('Folder "%s" isn\'t stored in the FS table'):format(foldPath))
 		end
 		if not table.find(fold.filePaths, path) then
 			print("[POLYFILLS] insert file path")
