@@ -480,8 +480,10 @@ runFn(function()
 		targetStrafe.target = target
 		targetStrafe.strafing = true
 		Betabot.Connections.TargetStrafe_Heartbeat = RunService.Heartbeat:Connect(function()
-			if not targetStrafe.target then
-				Betabot.Connections.TargetStrafe_Heartbeat:Disconnect()
+			if not targetStrafe.target or not targetStrafe.strafing then
+				if Betabot.Connections.TargetStrafe_Heartbeat then
+					Betabot.Connections.TargetStrafe_Heartbeat:Disconnect()
+				end
 				targetStrafe.target = nil
 				targetStrafe.strafing = false
 			end
@@ -565,42 +567,6 @@ runFn(function()
 			left = left,
 		}
 	end
-	-- local function parse(src)
-	-- 	local calls = src:split("(") -- opening
-	-- 	local AST = {}
-	-- 	for i, call in calls do
-	-- 		local args = {}
-	-- 		if call:sub(call:len()) == ")" then
-	-- 			continue
-	-- 		end
-	-- 		local argStr = calls[i + 1]
-	-- 		-- call = call:gsub(" ", ""):gsub("\t", "")
-	-- 		if argStr:find(",") then
-	-- 			for _, arg in argStr:split(",") do
-	-- 				if arg:sub(arg:len()) == ")" then
-	-- 					arg = arg:sub(1, arg:len() - 1)
-	-- 				end
-	-- 				if tonumber(arg) then
-	-- 					table.insert(args, tonumber(arg))
-	-- 				else
-	-- 					table.insert(args, arg)
-	-- 				end
-	-- 			end
-	-- 		else
-	-- 			local arg = argStr:sub(1, argStr:len() - 1)
-	-- 			if tonumber(arg) then
-	-- 				table.insert(args, tonumber(arg))
-	-- 			else
-	-- 				table.insert(args, arg)
-	-- 			end
-	-- 		end
-	-- 		table.insert(AST, {
-	-- 			targetName = call,
-	-- 			args = args,
-	-- 		})
-	-- 	end
-	-- 	return AST
-	-- end
 
 	Betabot.API.CommandAPI.CreateCommand("move", {
 		description = "moves the bot in a direction. example: move forward 1 right 4",

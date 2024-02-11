@@ -1,5 +1,5 @@
 --!strict
--- NOTE: this is for me testing stuff (i.e. polyfilling for garbage executors),
+-- NOTE: this is for me testing stuff (i.e. polyfilling for garbage executors and "partial name selectors"),
 -- currently, only use this if your executor is garbage (codex) and can't store files.
 
 -- [[  Services and variables  ]] --
@@ -550,6 +550,9 @@ runFn(function()
 		if not caseInsensitive then
 			caseInsensitive = true
 		end
+		if name:sub(0, 1) == "@" then
+			name = name:sub(2, #name)
+		end
 		if requestingPlayer and name == "me" then
 			return requestingPlayer
 		end
@@ -582,7 +585,7 @@ runFn(function()
 				return player
 			end
 		end
-		error(`No player with the name "{name}" was found.`)
+		error(('No player with the name "%s" was found.'):format(name))
 		return nil
 	end
 
