@@ -1,5 +1,6 @@
 -- made because codex is gay and can't save files
 -- currently only polyfills the file API
+-- TODO: should we make it using instances instead?
 
 local polyfills = {}
 
@@ -34,6 +35,7 @@ do
 		-- try to call original writefile with protection,
 		local suc, res = pcall(writefile, path, content)
 		fs[path] = { type = "file", content = content }
+		print("[POLYFILLS] fsData.filePaths =", fsData.filePaths)
 		table.insert(fsData.filePaths, path)
 		local foldPath = getFolderPath(path)
 		local fold = fsData.folderPaths[foldPath]
