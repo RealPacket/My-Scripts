@@ -17,8 +17,6 @@ Betabot.Connections.CharacterAdded = LocalPlayer.CharacterAdded:Connect(function
 	Character = c
 end)
 
-Betabot.Utils.Chat("dog")
-
 Betabot.API.CommandAPI.CreateCommand("test", {
 	description = "A testing command.",
 	callback = function(_, args)
