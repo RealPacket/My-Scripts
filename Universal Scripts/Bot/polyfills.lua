@@ -56,6 +56,7 @@ do
 		table.insert(fsData.filePaths, path)
 		local foldPath = getFolderPath(path)
 		local fold = fsData.folderPaths[foldPath]
+		print("[POLYFILLS] debug:", fsData.folderPaths, #fsData.folderPaths)
 		print("[POLYFILLS] folder path:", foldPath)
 		print("[POLYFILLS] folder:", fold)
 		if not fold then
@@ -73,10 +74,6 @@ do
 	end
 	function polyfills.makefolder(path: string)
 		fs[path] = { type = "folder" }
-		fsData[path] = {
-			type = "folder",
-			filePaths = {}, -- also list files convenience
-		}
 		table.insert(fsData.folderPaths, path)
 	end
 	function polyfills.listfiles(path: string)
