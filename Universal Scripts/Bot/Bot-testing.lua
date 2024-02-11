@@ -18,8 +18,10 @@ local base = "https://raw.githubusercontent.com/RealPacket/My-Scripts/main/"
 	.. "/Bot/"
 local baseFolder = "Betabot/"
 
+-- can't use githubRequest if FS doesn't work.
 local polyfills = loadstring(game:HttpGet(base .. "polyfills.lua"))()
-local listfiles, readfile, writefile, isfile = polyfills.listfiles, polyfills.readfile, polyfills.writefile, isfile
+local listfiles, readfile, writefile, isfile, makefolder =
+	polyfills.listfiles, polyfills.readfile, polyfills.writefile, isfile, polyfills.makefolder
 
 if getgenv().__destroy_bot then
 	getgenv().__destroy_bot(true)
