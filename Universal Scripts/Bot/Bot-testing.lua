@@ -1,5 +1,6 @@
 --!strict
--- NOTE: this is for me testing stuff (i.e. polyfilling for garbage executors)
+-- NOTE: this is for me testing stuff (i.e. polyfilling for garbage executors),
+-- currently, only use this if your executor is garbage (codex) and can't store files.
 
 -- [[  Services and variables  ]] --
 
@@ -20,8 +21,13 @@ local baseFolder = "Betabot/"
 
 -- can't use githubRequest if FS doesn't work.
 local polyfills = loadstring(game:HttpGet(base .. "polyfills.lua"))()
-local listfiles, readfile, writefile, isfile, makefolder =
-	polyfills.listfiles, polyfills.readfile, polyfills.writefile, isfile, polyfills.makefolder
+local listfiles, readfile, writefile, isfile, isfolder, makefolder =
+	polyfills.listfiles,
+	polyfills.readfile,
+	polyfills.writefile,
+	polyfills.isfile,
+	polyfills.isfolder,
+	polyfills.makefolder
 
 if getgenv().__destroy_bot then
 	getgenv().__destroy_bot(true)
