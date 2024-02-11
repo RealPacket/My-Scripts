@@ -289,8 +289,8 @@ do
 	--- Creates a new Signal instance.
 	function Signal.new(...): SignalInstance
 		local self = setmetatable({}, {
-			__tostring = function(self: SignalInstance)
-				return self.name and ("%s (Signal)"):format(self.name) or "Signal"
+			__tostring = function(Self: SignalInstance)
+				return Self.name and ("%s (Signal)"):format(Self.name) or "Signal"
 			end,
 			__index = Signal,
 		})
@@ -457,20 +457,22 @@ local config: config = table.freeze({
 })
 
 -- debug-logs some variables.
-local function log(t: { { name: string, value: any } })
-	if not config.debug then
-		return
-	end
-	local message = ""
-	for _, tab in t do
-		message ..= "\n" .. tab.name .. ": " .. tostring(tab.value)
-	end
-	if config.debugFn then
-		config.debugFn(message)
-	else
-		warn("[BOT] Debug - " .. message)
-	end
-end
+-- unused
+-- local function log(t: { { name: string, value: any } })
+-- 	if not config.debug then
+-- 		return
+-- 	end
+-- 	local message = ""
+-- 	for _, tab in t do
+-- 		message ..= "\n" .. tab.name .. ": " .. tostring(tab.value)
+-- 	end
+-- 	if config.debugFn then
+-- 		config.debugFn(message)
+-- 	else
+-- 		warn("[BOT] Debug - " .. message)
+-- 	end
+-- end
+
 local function format(str, args)
 	if not str then
 		error("Unable to format - no string provided.")
@@ -690,7 +692,7 @@ local baseFolder = "Betabot/"
 local function githubRequest(path)
 	if not isfile(baseFolder .. path) then
 		local suc, res = pcall(function()
-			return game:HttpGet(base .. path, true)
+			return game:HttpGet(base .. path)
 		end)
 		if not suc or res == "404: Not Found" then
 			error(res)
