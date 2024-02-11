@@ -985,6 +985,7 @@ Chat(
 	}),
 	true
 )
+Chat("cat")
 
 Betabot.Loaded = true
 Betabot.Events.OnLoad:Fire()
