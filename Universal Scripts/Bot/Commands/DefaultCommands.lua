@@ -302,11 +302,11 @@ runFn(function()
 			return
 		end
 		listing = true
-		Betabot.Utils.Chat("Commands:")
 		local names = {}
 		for name, _ in Betabot.Commands do
 			table.insert(names, name)
 		end
+		Betabot.Utils.Chat(("Commands (%d):"):format(#names))
 		Betabot.Utils.Chat(table.concat(names, ", "))
 		task.wait(1)
 		listing = false
@@ -646,7 +646,7 @@ Betabot.API.CommandAPI.CreateCommand("stop", {
 	callback = function()
 		Betabot.Utils.Chat("Goodbye!")
 		getgenv().__destroy_bot()
-	end
+	end,
 })
 
 Betabot.API.CommandAPI.CreateCommand("sit", {
@@ -656,7 +656,7 @@ Betabot.API.CommandAPI.CreateCommand("sit", {
 	-- },
 	callback = function()
 		Character.Humanoid:ChangeState(Enum.HumanoidStateType.Seated)
-	end
+	end,
 })
 
 Betabot.API.CommandAPI.CreateCommand("reload", {
