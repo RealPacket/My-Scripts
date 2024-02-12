@@ -305,7 +305,7 @@ runFn(function()
 		end
 		Betabot.Utils.Chat(("Commands (%d):"):format(#names))
 		local BATCH_SIZE = 9
-		for i = 1, names, BATCH_SIZE do
+		for i = 1, #names, BATCH_SIZE do
 			print("i=", i)
 			Betabot.Utils.Chat(table.concat(names, ", ", i, i - BATCH_SIZE))
 		end
