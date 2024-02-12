@@ -48,7 +48,7 @@ Betabot.API.CommandAPI.CreateCommand("autoconverttesting", {
 		for i, arg in args do
 			local raw = rawArgs[i]
 			local str = tostring(arg)
-			chatString ..= str .. raw ~= str and " / raw: " .. raw or "" .. " (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
+			chatString ..= str .. (raw ~= str and " / raw: " .. raw or "") .. " (" .. type(arg) .. ")" .. (i ~= #args and ", " or "")
 		end
 		Betabot.Utils.Chat(chatString)
 	end,
@@ -195,10 +195,11 @@ Betabot.API.CommandAPI.CreateCommand("spin", {
 			return
 		end
 		Humanoid.AutoRotate = false
-		local Spin = Instance.new("BodyAngularVelocity", RootPart)
+		local Spin = Instance.new("BodyAngularVelocity")
 		Spin.Name = "Spinning"
 		Spin.MaxTorque = Vector3.new(0, math.huge, 0)
 		Spin.AngularVelocity = Vector3.new(0, speed, 0)
+		Spin.Parent = RootPart
 	end,
 })
 Betabot.API.CommandAPI.CreateCommand("hipheight", {
@@ -517,9 +518,7 @@ Betabot.API.CommandAPI.CreateCommand("floodDetectorBypassTest", {
 		local max = 30
 		-- NOTE: the chat function bypasses the flood detector. Not this command
 		for i = 1, max do
-			task.spawn(function()
-				Betabot.Utils.Chat("Message index: " .. tostring(i) .. " out of " .. tostring(max))
-			end)
+			Betabot.Utils.Chat("Message index: " .. tostring(i) .. " out of " .. tostring(max))
 			task.wait()
 		end
 	end,
