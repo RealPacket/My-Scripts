@@ -304,7 +304,11 @@ runFn(function()
 			table.insert(names, name)
 		end
 		Betabot.Utils.Chat(("Commands (%d):"):format(#names))
-		Betabot.Utils.Chat(table.concat(names, ", "))
+		local BATCH_SIZE = 20
+		for i = 1, names, BATCH_SIZE do
+			print("i=", i)
+			Betabot.Utils.Chat(table.concat(names, ", ", i, i - BATCH_SIZE))
+		end
 		task.wait(1)
 		listing = false
 	end
@@ -436,7 +440,7 @@ runFn(function()
 		local targetPosition = targetCharacter:GetPivot()
 		local extents = Character:GetExtentsSize() * Character:GetScale()
 		local groundParams = RaycastParams.new()
-		local direction = -(extents + (Vector3.one * 4) + Character.Humanoid.HipHeight)
+		local direction = -(extents + (Vector3.one * Character.Humanoid.HipHeight))
 		groundParams.RespectCanCollide = true
 		groundParams.FilterType = Enum.RaycastFilterType.Exclude
 		groundParams.FilterDescendantsInstances = { Character }
