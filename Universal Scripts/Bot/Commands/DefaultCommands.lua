@@ -308,7 +308,7 @@ runFn(function()
 		for i = 1, #names, BATCH_SIZE do
 			local j = i + BATCH_SIZE
 			print("i=", i)
-			print(("sending names from index i (%d) to j (%d): %d"):format(i, j))
+			print(("sending names from index i (%d) to j (%d)"):format(i, j))
 			Betabot.Utils.Chat(table.concat(names, ", ", i, j))
 		end
 		task.wait(1)
