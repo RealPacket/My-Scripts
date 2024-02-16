@@ -47,9 +47,11 @@
     "hookmetamethod",
     "Drawing",
     "worldtoviewportpoint",
-    "Betabot"
+    "Betabot",
+    "identifyexecutor"
   ],
   "cSpell.words": [
+    "identifyexecutor",
     "isfile",
     "isfolder",
     "listfiles",

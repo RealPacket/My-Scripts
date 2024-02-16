@@ -1,4 +1,4 @@
-local testing = false
+local testing = identifyexecutor() == "Codex"
 local file = testing and "Bot-testing.lua" or "Bot.lua"
 loadstring(
 	game:HttpGet(
