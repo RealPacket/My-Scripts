@@ -26,19 +26,23 @@ So, if you **don't** have it, you can copy the [**LICENSE**](LICENSE) file,
 > **a library that they *can* use, while proprietary developers *can't* use it.**
 >
 > Using the ordinary GPL is not advantageous for every library.
-> There are reasons that can make it better to use the Lesser GPL in certain cases. The most common case is when a free library's features are readily available for proprietary software through other libraries.
-> In that case, the library cannot give free software any particular advantage, so it is better to
-> use the Lesser GPL for that library.
+> There are reasons that can make it better to use the Lesser GPL in certain cases.
+> The most common case is when a free library's features are readily available for proprietary software
+> through other libraries.
+> In that case, the library cannot give free software any particular advantage,
+> so it is better to use the Lesser GPL for that library.
 > This is why we used the Lesser GPL for the GNU C library.
 > After all, there are plenty of other C libraries;
-> using the GPL for ours would have driven proprietary software developers to use another—no problem for them, only for us.
+> using the GPL for ours would have driven proprietary software developers to use another.
+> No problem for them, only for us.
 > **However**, when a library provides a significant unique capability,
 > **like GNU Readline**, that's **a horse of a different color**.
 > The Readline library implements **input editing and history** for interactive programs,
 > and **that's a facility not generally available elsewhere**.
 > **Releasing it under the GPL and limiting its use to free programs gives our community a real boost.**
 > At least one application program is free software today specifically because that was necessary for using Readline.
-> If we amass a collection of powerful GPL-covered libraries that have no parallel available to proprietary software,
+> If we amass a collection of powerful GPL-covered libraries that have no parallel available
+> to proprietary software,
 > they will provide a range of useful modules to serve as building blocks in new free programs.
 > This will be a significant advantage for further free software development,
 > and some projects will decide to make software free in order to use these libraries.
@@ -52,8 +56,9 @@ So, if you **don't** have it, you can copy the [**LICENSE**](LICENSE) file,
 > Popularity is tempting, and it is easy for a library developer to rationalize the idea
 > that boosting the popularity of that one library is what the community needs above all.
 > But we **shouldn't** listen to these temptations,
-> because we can **achieve much more** if we **stand together**. We free software developers **should** **support one another**.
+> because we can **achieve much more** if we **stand together**.
+> We free software developers **should** **support one another**.
 > **By releasing libraries that are limited to free software only,**
 > **we can help each other's free software packages outdo the proprietary counterparts**.
-> **The whole free software movement will have more popularity, because free software as a whole will stack up**
-> **better against the competition.**
+> **The whole free software movement will have more popularity,**
+> **because free software as a whole will stack up better against the competition.**
