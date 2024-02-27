@@ -13,18 +13,18 @@
     You should have received a copy of the GNU Affero General Public License along with My-Scripts.
     If not, see <https://www.gnu.org/licenses/>.
 ]]
--- NOTE: this does have some bugs, I just wanna publish it early.
+-- bugs should be fixed, will test soon...
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local lPlayer = Players.LocalPlayer
--- our target; the player that our player has touched, and we'll stand on him.
+-- our target; the player that our character has touched.
 local target: Player? = nil
 local sittingOnTarget = false
 
 local function onJumpRequest()
 	-- if they're not standing on anyone, don't do anything.
-	if target == nil then
+	if not target then
 		return
 	end
 	target = nil
@@ -38,19 +38,19 @@ UserInputService.JumpRequest:Connect(onJumpRequest)
 local function targetLoop()
 	-- lPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.None)
 	while target and target ~= nil and sittingOnTarget do
-		-- lPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.None)
 		local targetHead: Part? = target.Character:FindFirstChild("Head")
 		lPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
 		lPlayer.Character.PrimaryPart.Anchored = false
-		local Position = targetHead.CFrame + (Vector3.new(0, targetHead.Size.Y + 2, 0))
-		lPlayer.Character:PivotTo(Position)
+		local position = targetHead.CFrame + (Vector3.new(0, targetHead.Size.Y + 2, 0))
+		lPlayer.Character:PivotTo(position)
 		lPlayer.Character.PrimaryPart.Anchored = true
 		task.wait()
 	end
 end
 
-local function onPlayerRemoving(Player: Player)
-	if Player == target then
+---@param player Player
+local function onPlayerRemoving(player)
+	if player == target then
 		lPlayer.Character.PrimaryPart.Anchored = false
 		target = nil
 		lPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
@@ -60,17 +60,18 @@ local function onPlayerRemoving(Player: Player)
 	-- do other things
 end
 
-local function onPlayerAdded(Player: Player)
-	if Player == lPlayer then
+---@param player Player
+local function onPlayerAdded(player)
+	if player == lPlayer then
 		return
 	end
 	task.spawn(function()
-		if not Player.Character then
-			Player.CharacterAdded:Wait()
+		if not player.Character then
+			player.CharacterAdded:Wait()
 		end
 
 		-- the player's head
-		local PlayerHead: Part? = Player.Character:WaitForChild("Head", 0.4)
+		local PlayerHead: Part? = player.Character:FindFirstChild("Head")
 
 		if not PlayerHead then
 			return
@@ -86,7 +87,7 @@ local function onPlayerAdded(Player: Player)
 			end
 
 			sittingOnTarget = true
-			target = Players:GetPlayerFromCharacter(Player.Character)
+			target = Players:GetPlayerFromCharacter(player.Character)
 			targetLoop()
 		end)
 	end)
