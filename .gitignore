@@ -40,3 +40,5 @@ luac.out
 *.i*86
 *.x86_64
 *.hex
+
+ignore
